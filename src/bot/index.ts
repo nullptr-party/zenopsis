@@ -116,7 +116,13 @@ export async function initializeBot() {
         }
 
         await ctx.reply("Generating summary... Please wait.");
-        await triggerManualSummary(chatId);
+        const summary = await triggerManualSummary(chatId);
+        
+        if (summary) {
+          await ctx.reply(summary, { parse_mode: 'Markdown' });
+        } else {
+          await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
+        }
       } catch (error) {
         console.error("Error generating summary:", error);
         await ctx.reply("Sorry, I couldn't generate a summary at this time. Please try again later.");

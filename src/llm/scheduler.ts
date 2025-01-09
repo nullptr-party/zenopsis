@@ -19,7 +19,7 @@ async function checkAndGenerateSummaries() {
 
     // Process each active group
     for (const config of configs) {
-      await processGroupSummary(config);
+      await processGroupSummary(config, true);
     }
   } catch (error) {
     console.error('Error in summary scheduler:', error);
@@ -43,31 +43,38 @@ function formatSummary(summary: Summary): string {
     `*Overall Sentiment:* ${sentiment[summary.sentiment]}`;
 }
 
-async function processGroupSummary(config: any) {
+async function processGroupSummary(config: any, autoSend: boolean = false) {
   try {
     // Get messages batch for the group
     const batch = await batchMessages(config.chatId, config.summaryInterval / 60);
     
     if (!batch) {
-      return; // Not enough messages for summary
+      return null; // Not enough messages for summary
     }
 
     // Generate summary
     const summary = await generateSummary(batch);
     await storeSummary(config.chatId, summary);
 
-    // Format and send summary to the group
+    // Format summary
     const formattedSummary = formatSummary(summary);
-    await bot.api.sendMessage(config.chatId, formattedSummary, {
-      parse_mode: 'Markdown',
-    });
+
+    // If autoSend is true (scheduler) or it's a manual trigger without a return handler
+    if (autoSend) {
+      await bot.api.sendMessage(config.chatId, formattedSummary, {
+        parse_mode: 'Markdown',
+      });
+    }
+
+    return formattedSummary;
   } catch (error) {
     console.error(`Error processing summary for chat ${config.chatId}:`, error);
+    return null;
   }
 }
 
 // Export for manual trigger support
-export async function triggerManualSummary(chatId: number) {
+export async function triggerManualSummary(chatId: number): Promise<string | null> {
   const config = await db.query.groupConfigs.findFirst({
     where: eq(groupConfigs.chatId, chatId),
   });
@@ -76,5 +83,5 @@ export async function triggerManualSummary(chatId: number) {
     throw new Error('Group configuration not found');
   }
 
-  await processGroupSummary(config);
+  return await processGroupSummary(config, false);
 }
