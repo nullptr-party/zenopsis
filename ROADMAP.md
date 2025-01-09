@@ -30,18 +30,18 @@
 - [x] Add core CRUD operations for messages
 
 ### Phase 4: Basic OpenAI Integration
-- [ ] Set up OpenAI client with Instructor.js
-- [ ] Implement basic message batching
-- [ ] Create simple summary generation logic
-- [ ] Add basic rate limiting and token management
-- [ ] Implement essential error handling for API calls
+- [x] Set up OpenAI client with Instructor.js
+- [x] Implement basic message batching
+- [x] Create simple summary generation logic
+- [x] Add basic rate limiting and token management
+- [x] Implement essential error handling for API calls
 
 ### Phase 5: Basic Summary Generation
-- [ ] Create simple timer-based summary trigger
-- [ ] Implement basic message selection for summarization
-- [ ] Create minimal summary format
+- [x] Create simple timer-based summary trigger
+- [x] Implement basic message selection for summarization
+- [x] Create minimal summary format
 - [ ] Add summary delivery to group chat
-- [ ] Implement manual summary trigger command
+- [x] Implement manual summary trigger command
 
 ## Enhancement Phase (Post-MVP)
 
