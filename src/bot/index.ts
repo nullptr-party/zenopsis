@@ -1,11 +1,15 @@
 import { Bot } from "grammy";
 import { config } from "dotenv";
+import { messageHandler } from "./middleware/messageHandler";
 
 // Load environment variables
 config();
 
 // Initialize the bot with the token from environment variables
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN || "");
+
+// Add message handling middleware
+bot.use(messageHandler);
 
 // Basic command handlers
 bot.command("start", async (ctx) => {
