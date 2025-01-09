@@ -3,12 +3,12 @@
 ## MVP Phase (Core Functionality)
 
 ### Phase 1: Foundation Setup
-- [ ] Initialize TypeScript project with Bun
-- [ ] Set up project structure (/src folders)
-- [ ] Configure environment variables handling
-- [ ] Create basic bot connection using GramIO
-- [ ] Implement basic error handling and logging system
-- [ ] Add essential command handlers (/start, /help)
+- [x] Initialize TypeScript project with Bun
+- [x] Set up project structure (/src folders)
+- [x] Configure environment variables handling
+- [x] Create basic bot connection using GramIO
+- [x] Implement basic error handling and logging system
+- [x] Add essential command handlers (/start, /help)
 
 ### Phase 2: Basic Message Monitoring
 - [ ] Implement basic message capture middleware
