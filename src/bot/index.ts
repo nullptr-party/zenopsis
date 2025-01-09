@@ -1,37 +1,36 @@
 import { Bot } from "grammy";
 import { config } from "dotenv";
-import { messageHandler } from "./middleware/messageHandler";
+import { initializeDatabase } from "../db/init";
+import { createMessageLogger } from "./middleware/message-logger";
 
 // Load environment variables
 config();
 
-// Initialize the bot with the token from environment variables
-const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN || "");
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+  throw new Error("TELEGRAM_BOT_TOKEN environment variable is required");
+}
 
-// Add message handling middleware
-bot.use(messageHandler);
+// Create bot instance
+const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
-// Basic command handlers
-bot.command("start", async (ctx) => {
-  await ctx.reply(
-    "👋 Hello! I'm Zenopsis, your chat monitoring and summarization bot.\n\n" +
-    "I'll help keep track of conversations and provide periodic summaries."
-  );
-});
+// Initialize bot
+export async function initializeBot() {
+  try {
+    // Initialize database
+    await initializeDatabase();
 
-bot.command("help", async (ctx) => {
-  await ctx.reply(
-    "🤖 Zenopsis Bot Commands:\n\n" +
-    "/start - Start the bot\n" +
-    "/help - Show this help message\n" +
-    "/summary - Generate a summary of recent messages"
-  );
-});
+    // Add message logger middleware
+    bot.use(createMessageLogger());
 
-// Error handling
-bot.catch((err) => {
-  console.error("Bot error occurred:", err);
-});
+    // Add command handlers
+    bot.command("start", (ctx) => ctx.reply("Welcome to Zenopsis! I will help you track and summarize group chat conversations."));
+    bot.command("help", (ctx) => ctx.reply("Available commands:\n/start - Start the bot\n/help - Show this help message"));
 
-// Export the bot instance
-export default bot; 
+    // Start the bot
+    await bot.start();
+    console.log("Bot started successfully");
+  } catch (error) {
+    console.error("Failed to initialize bot:", error);
+    throw error;
+  }
+} 

@@ -8,6 +8,7 @@ Project Guidelines:
 2. Use Bun.js as the runtime environment
 3. Follow clean code principles and maintain consistent formatting
 4. Write meaningful commit messages describing the changes
+5. You must update the ROADMAP.md file with the latest changes and progress.
 </guidelines>
 
 <tech_stack>

@@ -11,23 +11,23 @@
 - [x] Add essential command handlers (/start, /help)
 
 ### Phase 2: Basic Message Monitoring
-- [ ] Implement basic message capture middleware
-- [ ] Store essential message metadata (sender, timestamp, chat_id)
-- [ ] Handle basic text messages:
-  - [ ] Pure text messages
-  - [ ] Text captions from media messages
-  - [ ] Basic message validation
-  - [ ] Filter out bot commands and bot messages
+- [x] Implement basic message capture middleware
+- [x] Store essential message metadata (sender, timestamp, chat_id)
+- [x] Handle basic text messages:
+  - [x] Pure text messages
+  - [x] Text captions from media messages
+  - [x] Basic message validation
+  - [x] Filter out bot commands and bot messages
 
 ### Phase 3: Essential Database Integration
-- [ ] Set up Drizzle ORM with SQLite
-- [ ] Create minimal database schema for:
-  - [ ] Chat messages
-  - [ ] Group configurations
-  - [ ] Summary history
-- [ ] Create initial database migrations
-- [ ] Implement basic database connection
-- [ ] Add core CRUD operations for messages
+- [x] Set up Drizzle ORM with SQLite
+- [x] Create minimal database schema for:
+  - [x] Chat messages
+  - [x] Group configurations
+  - [x] Summary history
+- [x] Create initial database migrations
+- [x] Implement basic database connection
+- [x] Add core CRUD operations for messages
 
 ### Phase 4: Basic OpenAI Integration
 - [ ] Set up OpenAI client with Instructor.js

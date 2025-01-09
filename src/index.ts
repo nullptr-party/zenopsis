@@ -1,13 +1,13 @@
-import bot from "./bot";
+import { initializeBot } from './bot';
 
-console.log("Starting Zenopsis bot...");
+async function main() {
+  try {
+    await initializeBot();
+    console.log('Application started successfully');
+  } catch (error) {
+    console.error('Failed to start application:', error);
+    process.exit(1);
+  }
+}
 
-// Start the bot
-bot.start({
-  onStart: (botInfo) => {
-    console.log(`Bot @${botInfo.username} started successfully!`);
-  },
-}).catch((err) => {
-  console.error("Failed to start bot:", err);
-  process.exit(1);
-}); 
+main(); 
