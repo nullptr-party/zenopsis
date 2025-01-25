@@ -83,7 +83,11 @@
     - [x] Data type validations
     - [x] Field length and format checks
     - [x] Reference integrity checks
-- [ ] Implement topic clustering ➔ No ML/NLP integration found
+- [x] Implement topic clustering:
+  - [x] Topic detection using LLM
+  - [x] Message clustering
+  - [x] Confidence scoring
+  - [x] Integration with summary generation
 - [x] Add cost tracking and limitations:
   - [x] Track API token usage (GroupConfigsRepository)
   - [x] Set configurable limits (maxDailyTokens)
