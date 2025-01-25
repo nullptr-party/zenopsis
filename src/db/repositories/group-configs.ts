@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 import { db } from '../index';
-import { groupConfigs } from '../schema';
+import { groupConfigs, summaries } from '../schema';
 
 export interface GroupConfig {
   chatId: number;
