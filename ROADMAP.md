@@ -55,9 +55,9 @@
   - [x] Check message format and encoding
 - [x] Implement message threading/conversation tracking:
   - [x] Handle explicit threading via Telegram replies
-  - [ ] Implement context-based thread detection
+  - [x] Implement context-based thread detection
   - [x] Time-based proximity analysis
-  - [ ] Text similarity matching
+  - [x] Text similarity matching (embedding-based)
   - [x] Name/mention detection
 
 ### Phase 7: Enhanced Reference System
@@ -83,8 +83,8 @@
 - [x] Add cost tracking and limitations:
   - [x] Track API token usage
   - [x] Set configurable limits
-  - [ ] Implement usage alerts
-  - [ ] Create cost reports
+  - [x] Implement usage alerts (threshold-based)
+  - [x] Create cost reports (time-based analytics)
 
 ### Phase 9: Group Management
 - [x] Add group-specific settings
@@ -112,21 +112,40 @@
 ## Final Phases
 
 ### Phase 11: Testing and Documentation
-- [ ] Write unit tests for core functionality
-- [ ] Add integration tests
-- [ ] Create API documentation
-- [ ] Write user guide and bot commands list
+- [ ] Write unit tests for core functionality ➔ (tests/messages.test.ts needed)
+- [ ] Add integration tests ➔ (test group config workflows)
+- [ ] Create API documentation ➔ (docs/API.md needed)
+- [ ] Write user guide and bot commands list ➔ (docs/USAGE.md needed)
 - [ ] Document deployment process
 - [ ] Create contributing guidelines
 
+Testing Framework Priority:
+- [ ] Unit Tests:
+  - [ ] Message handling and references
+  - [ ] Group configuration management
+  - [ ] Summary generation and costs
+- [ ] Integration Tests:
+  - [ ] Bot command workflows
+  - [ ] Group management features
+  - [ ] Token usage tracking
+
 ### Phase 12: Production Deployment
 - [ ] Set up production environment
-- [ ] Implement health checks
-- [ ] Add performance monitoring
+- [x] Implement health checks (/health endpoint)
+- [ ] Add performance monitoring ➔ (metrics endpoint needed)
 - [ ] Set up automated backups
 - [ ] Create deployment scripts
-- [ ] Implement logging and alerting
+- [x] Implement logging (bot middleware)
 - [ ] Add system status notifications
+
+Production Requirements:
+- [x] Basic Health Monitoring:
+  - [x] Health check endpoints
+  - [x] Request logging
+- [ ] Advanced Operations:
+  - [ ] Performance metrics
+  - [ ] Automated backups
+  - [ ] Alert escalation
 
 ## Questions to Consider
 1. What should be the default summary interval (e.g., 6 hours, 12 hours)?
