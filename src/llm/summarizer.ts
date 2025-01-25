@@ -1,5 +1,12 @@
 import { instructor, SummarySchema, withErrorHandling } from './client';
-import { messages as messagesTable } from '../db/schema';
+import { messages as messagesTable, summaries } from '../db/schema';
+import { z } from 'zod';
+
+const TOPIC_KEYWORDS = {
+  tech: ['ai', 'code', 'server', 'database', 'api', 'framework'],
+  support: ['help', 'issue', 'error', 'bug', 'fix', 'problem'],
+  offTopic: ['meme', 'joke', 'offtopic', 'random', 'funny']
+};
 import type { InferSelectModel } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
@@ -39,10 +46,19 @@ export async function batchMessages(chatId: number, timeWindowMinutes: number = 
   };
 }
 
+function detectTopics(messages: Message[]): string[] {
+  const content = messages.map(m => m.content).join(' ').toLowerCase();
+  return Object.entries(TOPIC_KEYWORDS)
+    .filter(([_, keywords]) => keywords.some(kw => content.includes(kw)))
+    .map(([topic]) => topic);
+}
+
 export async function generateSummary(batch: MessageBatch) {
   const messageText = batch.messages
     .map(msg => `${msg.username || 'Unknown'}: ${msg.content}`)
     .join('\n');
+  
+  const detectedTopics = detectTopics(batch.messages);
 
   return await withErrorHandling(async () => {
     const summary = await instructor.chat.completions.create({
@@ -58,8 +74,10 @@ export async function generateSummary(batch: MessageBatch) {
       ],
       model: 'gpt-3.5-turbo',
       response_model: {
-        schema: SummarySchema,
-        name: 'Summary',
+        schema: SummarySchema.extend({
+          topics: z.array(z.string()).optional()
+        }),
+        name: 'EnhancedSummary',
       },
       temperature: 0.7,
       max_tokens: MAX_TOKENS_PER_REQUEST,
