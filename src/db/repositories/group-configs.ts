@@ -80,4 +80,36 @@ export class GroupConfigsRepository {
 
     return updated;
   }
-} 
+
+  /**
+   * Check token usage and trigger alerts if needed
+   */
+  async checkTokenUsage(chatId: number) {
+    const config = await this.getByChatId(chatId);
+    if (!config?.maxDailyTokens || !config.tokenUsageAlert) {
+      return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const result = await db
+      .select({ 
+        totalTokens: sql<number>`sum(tokens_used)` 
+      })
+      .from(summaries)
+      .where(and(
+        eq(summaries.chatId, chatId),
+        sql`created_at >= ${today.getTime()}`
+      ));
+
+    const totalTokens = result[0]?.totalTokens || 0;
+    const alertThreshold = config.maxDailyTokens * (config.tokenUsageAlert / 100);
+
+    return totalTokens >= alertThreshold ? {
+      currentUsage: totalTokens,
+      limit: config.maxDailyTokens,
+      percentage: (totalTokens / config.maxDailyTokens) * 100
+    } : null;
+  }
+}

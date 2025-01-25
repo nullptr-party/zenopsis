@@ -100,6 +100,39 @@ export class MessagesRepository {
         sql`${messages.timestamp} < ${date.getTime()}`
       ));
   }
+
+  /**
+   * Search messages with fuzzy matching
+   */
+  async searchMessages(chatId: number, query: string, options?: {
+    startTime?: Date;
+    endTime?: Date;
+    limit?: number;
+  }) {
+    let conditions = [
+      eq(messages.chatId, chatId),
+      sql`${messages.content} LIKE '%' || ${query} || '%'`
+    ];
+
+    if (options?.startTime) {
+      conditions.push(sql`${messages.timestamp} >= ${options.startTime.getTime()}`);
+    }
+
+    if (options?.endTime) {
+      conditions.push(sql`${messages.timestamp} <= ${options.endTime.getTime()}`);
+    }
+
+    const searchQuery = db.select()
+      .from(messages)
+      .where(and(...conditions))
+      .orderBy(desc(messages.timestamp));
+
+    if (options?.limit) {
+      searchQuery.limit(options.limit);
+    }
+
+    return await searchQuery;
+  }
   /**
    * Get references for a specific message
    */

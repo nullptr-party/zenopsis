@@ -46,6 +46,17 @@ function detectMessageReferences(ctx: Context): MessageReference[] {
     });
   }
 
+  // Detect context-based thread references
+  if (ctx.message?.text) {
+    const threadMatch = ctx.message.text.match(/(?:re:|thread:)\s*(\d+)/i);
+    if (threadMatch) {
+      references.push({
+        type: ReferenceType.THREAD,
+        targetMessageId: parseInt(threadMatch[1], 10),
+      });
+    }
+  }
+
   // Detect mentions (@username)
   if (ctx.message?.text) {
     const mentionRegex = /@([a-zA-Z0-9_]{5,32})/g;
