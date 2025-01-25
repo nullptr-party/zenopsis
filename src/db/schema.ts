@@ -22,6 +22,7 @@ export const groupConfigs = sqliteTable('group_configs', {
   summaryInterval: integer('summary_interval').notNull().default(21600), // 6 hours in seconds
   minMessagesForSummary: integer('min_messages_for_summary').notNull().default(10),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  summaryFormat: text('summary_format').notNull().default('markdown'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -35,5 +36,16 @@ export const summaries = sqliteTable('summaries', {
   startTimestamp: integer('start_timestamp', { mode: 'timestamp' }).notNull(),
   endTimestamp: integer('end_timestamp', { mode: 'timestamp' }).notNull(),
   tokensUsed: integer('tokens_used'),
+  format: text('format').notNull().default('markdown'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-}); 
+});
+
+export const summaryFeedback = sqliteTable('summary_feedback', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  summaryId: integer('summary_id').references(() => summaries.id),
+  chatId: integer('chat_id').notNull(),
+  userId: integer('user_id').notNull(),
+  rating: integer('rating').check(rating >= 1 && rating <= 5),
+  feedbackText: text('feedback_text'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});

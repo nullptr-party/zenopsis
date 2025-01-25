@@ -42,8 +42,8 @@
 - [x] Create minimal summary format
 - [x] Add summary delivery to group chat
 - [x] Implement manual summary trigger command
-- [ ] Add summary formatting options
-- [ ] Implement summary feedback collection
+- [x] Add summary formatting options
+- [x] Implement summary feedback collection
 
 ## Enhancement Phase (Post-MVP)
 
