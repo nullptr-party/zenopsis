@@ -46,7 +46,7 @@ function detectMessageReferences(ctx: Context): MessageReference[] {
     });
   }
 
-  // Detect context-based thread references
+  // Detect explicit thread references
   if (ctx.message?.text) {
     const threadMatch = ctx.message.text.match(/(?:re:|thread:)\s*(\d+)/i);
     if (threadMatch) {
@@ -54,6 +54,27 @@ function detectMessageReferences(ctx: Context): MessageReference[] {
         type: ReferenceType.THREAD,
         targetMessageId: parseInt(threadMatch[1], 10),
       });
+    }
+  }
+
+  // Detect context-based thread references
+  if (ctx.message?.text) {
+    const contextKeywords = {
+      project: ['project', 'task', 'milestone', 'deadline'],
+      meeting: ['meeting', 'call', 'discussion', 'sync'],
+      support: ['issue', 'problem', 'help', 'error'],
+      event: ['event', 'planning', 'schedule', 'organize']
+    };
+
+    for (const [context, keywords] of Object.entries(contextKeywords)) {
+      if (keywords.some(keyword => ctx.message!.text!.toLowerCase().includes(keyword))) {
+        references.push({
+          type: ReferenceType.CONTEXT,
+          targetMessageId: -1,
+          contextType: context
+        });
+        break;
+      }
     }
   }
 

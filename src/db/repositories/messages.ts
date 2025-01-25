@@ -108,10 +108,13 @@ export class MessagesRepository {
     startTime?: Date;
     endTime?: Date;
     limit?: number;
+    similarityThreshold?: number;
   }) {
     let conditions = [
       eq(messages.chatId, chatId),
-      sql`${messages.content} LIKE '%' || ${query} || '%'`
+      options?.similarityThreshold 
+        ? sql`similarity(${messages.content}, ${query}) > ${options.similarityThreshold}`
+        : sql`${messages.content} LIKE '%' || ${query} || '%'`
     ];
 
     if (options?.startTime) {

@@ -95,7 +95,8 @@ export class GroupConfigsRepository {
 
     const result = await db
       .select({ 
-        totalTokens: sql<number>`sum(tokens_used)` 
+        totalTokens: sql<number>`sum(tokens_used)`,
+        lastAlert: sql<number>`max(case when alert_sent = 1 then created_at end)`
       })
       .from(summaries)
       .where(and(
@@ -105,11 +106,41 @@ export class GroupConfigsRepository {
 
     const totalTokens = result[0]?.totalTokens || 0;
     const alertThreshold = config.maxDailyTokens * (config.tokenUsageAlert / 100);
+    const lastAlert = result[0]?.lastAlert;
+    const shouldAlert = totalTokens >= alertThreshold && 
+                       (!lastAlert || (Date.now() - lastAlert) > 3600000); // 1 hour cooldown
 
-    return totalTokens >= alertThreshold ? {
+    if (shouldAlert) {
+      await db.update(summaries)
+        .set({ alertSent: true })
+        .where(eq(summaries.chatId, chatId));
+    }
+
+    return shouldAlert ? {
       currentUsage: totalTokens,
       limit: config.maxDailyTokens,
-      percentage: (totalTokens / config.maxDailyTokens) * 100
+      percentage: (totalTokens / config.maxDailyTokens) * 100,
+      shouldAlert
     } : null;
+  }
+
+  async generateCostReport(chatId: number, startDate?: Date, endDate: Date = new Date()) {
+    const start = startDate || new Date(endDate.getTime() - (30 * 24 * 60 * 60 * 1000)); // Default 30 days
+
+    return await db
+      .select({
+        date: sql<string>`date(datetime(created_at/1000, 'unixepoch'))`,
+        totalTokens: sql<number>`sum(tokens_used)`,
+        summaryCount: sql<number>`count(*)`,
+        avgTokensPerSummary: sql<number>`avg(tokens_used)`
+      })
+      .from(summaries)
+      .where(and(
+        eq(summaries.chatId, chatId),
+        sql`created_at >= ${start.getTime()}`,
+        sql`created_at <= ${endDate.getTime()}`
+      ))
+      .groupBy(sql`date`)
+      .orderBy(sql`date`);
   }
 }
