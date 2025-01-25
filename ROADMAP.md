@@ -87,8 +87,8 @@
 - [x] Add cost tracking and limitations:
   - [x] Track API token usage
   - [x] Set configurable limits
-  - [x] Implement usage alerts (threshold-based)
-  - [x] Create cost reports (time-based analytics)
+  - [x] Implement usage alerts (threshold-based, with cooldown)
+  - [x] Create cost reports (daily/monthly analytics)
 
 ### Phase 9: Group Management
 - [x] Add group-specific settings
@@ -119,32 +119,38 @@
 ## Final Phases
 
 ### Phase 11: Testing and Documentation
-- [ ] Testing Framework Priority:
+- [ ] Testing Framework Priority (Not Started):
   - [ ] Unit Tests:
-    - [ ] Message handling and references
-    - [ ] Group configuration management
+    - [ ] Message handling and references (MessagesRepository)
+    - [ ] Group configuration management (GroupConfigsRepository)
     - [ ] Summary generation and costs
-    - [ ] Token usage tracking
+    - [ ] Token usage tracking (checkTokenUsage validation)
   - [ ] Integration Tests:
     - [ ] Bot command workflows
     - [ ] Group management features
     - [ ] API endpoint validation
-- [ ] Documentation Needs:
-  - [ ] API Reference (docs/API.md)
-  - [ ] User Guide (docs/USAGE.md)
+- [ ] Documentation Needs (Missing docs/ folder):
+  - [ ] API Reference:
+    - [ ] Endpoint specifications
+    - [ ] Rate limits and quotas
+    - [ ] Error responses
+  - [ ] User Guide:
+    - [ ] Bot command reference
+    - [ ] Configuration options
+    - [ ] Usage examples
   - [ ] Deployment Guide
   - [ ] Contributing Guidelines
 
 ### Phase 12: Production Deployment
 - [x] Core Operational Features:
-  - [x] Health monitoring endpoint
+  - [x] Health monitoring endpoint (/health)
   - [x] Request logging middleware
   - [x] Error tracking system
   - [x] Token usage monitoring
-- [ ] Advanced Operations:
-  - [ ] Performance metrics endpoint
-  - [ ] Automated database backups
-  - [ ] Alert escalation system
+- [ ] Advanced Operations (Partial):
+  - [ ] Performance metrics endpoint (needs /metrics implementation)
+  - [ ] Automated database backups (no backup system)
+  - [ ] Alert escalation system (basic alerts only)
   - [ ] Resource usage monitoring
 
 Production Requirements:
