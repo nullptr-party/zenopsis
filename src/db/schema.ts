@@ -65,3 +65,18 @@ export const summaryFeedback = sqliteTable('summary_feedback', {
   feedbackText: text('feedback_text'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const userEngagement = sqliteTable('user_engagement', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
+  chatId: integer('chat_id').notNull(),
+  messageCount: integer('message_count').notNull().default(0),
+  commandCount: integer('command_count').notNull().default(0),
+  replyCount: integer('reply_count').notNull().default(0),
+  mentionCount: integer('mention_count').notNull().default(0),
+  lastActive: integer('last_active', { mode: 'timestamp' }).notNull(),
+  dailyActiveStreak: integer('daily_active_streak').notNull().default(0),
+  averageResponseTime: integer('average_response_time'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});

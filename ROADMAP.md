@@ -114,7 +114,12 @@
 - [x] Add conversation topic detection
 - [x] Implement sentiment analysis
 - [x] Add multi-language support
-- [ ] Create user engagement metrics ➔ No usage stats tracking implemented
+- [x] Create user engagement metrics:
+  - [x] Message count tracking
+  - [x] Command usage tracking
+  - [x] Reply and mention tracking
+  - [x] Activity streaks
+  - [x] Response time analytics
 - [x] Implement conversation search:
   - [x] Time filters (MessagesRepository.searchMessages)
   - [x] Similarity thresholding
