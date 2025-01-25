@@ -62,10 +62,10 @@
 
 ### Phase 7: Enhanced Reference System
 - [ ] Design message reference storage schema
-- [ ] Implement message linking functionality
+- [x] Implement message linking functionality
 - [ ] Add topic detection and tracking
 - [ ] Create unified threading system
-- [ ] Add jump-to-message functionality
+- [x] Add jump-to-message functionality
 
 ### Phase 8: Advanced Summary Features
 - [x] Enhance summary schema:
