@@ -44,6 +44,7 @@ export const summaries = sqliteTable('summaries', {
   endTimestamp: integer('end_timestamp', { mode: 'timestamp' }).notNull(),
   tokensUsed: integer('tokens_used'),
   format: text('format').notNull().default('markdown'),
+  alertSent: integer('alert_sent', { mode: 'boolean' }).default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

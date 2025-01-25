@@ -10,3 +10,6 @@ CREATE TABLE IF NOT EXISTS message_references (
 
 -- Add sentiment_score column to messages if it doesn't exist
 ALTER TABLE messages ADD COLUMN sentiment_score INTEGER;
+
+-- Add alert_sent column to summaries if it doesn't exist
+ALTER TABLE summaries ADD COLUMN alert_sent INTEGER DEFAULT 0;
