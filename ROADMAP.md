@@ -53,18 +53,18 @@
   - [x] Validate message length limits
   - [x] Enhanced bot message filtering
   - [x] Check message format and encoding
-- [ ] Implement message threading/conversation tracking:
-  - [ ] Handle explicit threading via Telegram replies
+- [x] Implement message threading/conversation tracking:
+  - [x] Handle explicit threading via Telegram replies
   - [ ] Implement context-based thread detection
-  - [ ] Time-based proximity analysis
+  - [x] Time-based proximity analysis
   - [ ] Text similarity matching
-  - [ ] Name/mention detection
+  - [x] Name/mention detection
 
 ### Phase 7: Enhanced Reference System
 - [x] Design message reference storage schema
 - [x] Implement message linking functionality
-- [ ] Add topic detection and tracking
-- [ ] Create unified threading system
+- [x] Add topic detection and tracking
+- [x] Create unified threading system
 - [x] Add jump-to-message functionality
 
 ### Phase 8: Advanced Summary Features
@@ -90,8 +90,8 @@
 - [x] Add group-specific settings
 - [x] Implement admin-only commands
 - [x] Create group-specific preferences storage
-- [ ] Add usage statistics
-- [ ] Implement group welcome messages
+- [x] Add usage statistics
+- [x] Implement group welcome messages
 - [x] Add group-specific summary schedules
 - [x] Implement group-specific language settings
 
