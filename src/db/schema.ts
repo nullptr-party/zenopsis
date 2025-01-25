@@ -56,14 +56,12 @@ export const messageReferences = sqliteTable('message_references', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const summaryFeedback = sqliteTable('summary_feedback', {}, (table) => ({
-  ratingCheck: sqliteTable.check(sql`rating >= 1 AND rating <= 5`)
-}), {
+export const summaryFeedback = sqliteTable('summary_feedback', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   summaryId: integer('summary_id').references(() => summaries.id),
   chatId: integer('chat_id').notNull(),
   userId: integer('user_id').notNull(),
-  rating: integer('rating').notNull(),
+  rating: integer('rating').notNull().check(sql`rating >= 1 AND rating <= 5`),
   feedbackText: text('feedback_text'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
