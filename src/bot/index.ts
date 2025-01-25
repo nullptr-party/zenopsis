@@ -118,6 +118,12 @@ export async function initializeBot() {
         await ctx.reply("Generating summary... Please wait.");
         const summary = await triggerManualSummary(chatId);
         
+        // Check token usage before sending summary
+        const usage = await groupConfigs.checkTokenUsage(chatId);
+        if (usage?.shouldAlert) {
+          await ctx.reply(`⚠️ Token usage alert: ${usage.percentage.toFixed(1)}% of daily limit (${usage.currentUsage} / ${usage.limit} tokens)`);
+        }
+
         if (summary) {
           await ctx.reply(summary, { parse_mode: 'Markdown' });
         } else {

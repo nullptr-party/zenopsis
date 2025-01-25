@@ -144,4 +144,38 @@ export class MessagesRepository {
       where: eq(messageReferences.sourceMessageId, messageId),
     });
   }
+
+  /**
+   * Find messages similar to the given embedding vector
+   */
+  async findSimilarMessages(chatId: number, embedding: number[], options?: {
+    startTime?: Date;
+    endTime?: Date;
+    threshold?: number;
+    limit?: number;
+  }) {
+    let conditions = [
+      eq(messages.chatId, chatId),
+      sql`cosine_similarity(${messages.embedding}, ${JSON.stringify(embedding)}) > ${options?.threshold ?? 0.78}`
+    ];
+
+    if (options?.startTime) {
+      conditions.push(sql`${messages.timestamp} >= ${options.startTime.getTime()}`);
+    }
+
+    if (options?.endTime) {
+      conditions.push(sql`${messages.timestamp} <= ${options.endTime.getTime()}`);
+    }
+
+    const query = db.select()
+      .from(messages)
+      .where(and(...conditions))
+      .orderBy(desc(messages.timestamp));
+
+    if (options?.limit) {
+      query.limit(options.limit);
+    }
+
+    return await query;
+  }
 }

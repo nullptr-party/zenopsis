@@ -14,6 +14,7 @@ export const messages = sqliteTable('messages', {
   replyToMessageId: integer('reply_to_message_id'),
   sentimentScore: integer('sentiment_score'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  embedding: text('embedding'), // Store text-embedding-3-small vectors
 });
 
 // Group configurations table
