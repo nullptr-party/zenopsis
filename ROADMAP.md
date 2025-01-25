@@ -47,7 +47,7 @@
 
 ## Enhancement Phase (Post-MVP)
 
-### Phase 6: Advanced Message Handling
+### Phase 6: Advanced Message Handling ✓
 - [x] Enhance message validation:
   - [x] Check for empty or whitespace-only messages
   - [x] Validate message length limits
@@ -55,9 +55,9 @@
   - [x] Check message format and encoding
 - [x] Implement message threading/conversation tracking:
   - [x] Handle explicit threading via Telegram replies
-  - [x] Implement context-based thread detection (keyword + similarity)
+  - [x] Implement context-based thread detection (via detectMessageReferences)
   - [x] Time-based proximity analysis
-  - [x] Text similarity matching (cosine similarity via findSimilarMessages)
+  - [x] Text similarity matching (via findSimilarMessages)
   - [x] Name/mention detection
 
 ### Phase 7: Enhanced Reference System
@@ -118,31 +118,31 @@
 
 ## Final Phases
 
-### Phase 11: Testing and Documentation
+### Phase 11: Testing and Documentation (Critical Gaps)
 - [ ] Testing Framework Priority:
   - [ ] Unit Tests:
-    - [ ] Message reference persistence tests
+    - [ ] Message reference persistence (all 4 reference types)
     - [ ] Group configuration CRUD operations
     - [ ] Summary generation workflows
-    - [ ] Token alert threshold validation
+    - [ ] Token alert threshold and cooldown validation
   - [ ] Integration Tests:
     - [ ] Bot command workflows
     - [ ] Group management features
-    - [ ] Similarity search accuracy tests
+    - [ ] Similarity search accuracy with vector test cases
   - [ ] Performance Tests:
     - [ ] Message processing throughput
     - [ ] Summary generation latency
-    - [ ] Search response times
+    - [ ] Search response times with large datasets
 - [ ] Documentation Needs:
   - [ ] API Reference:
-    - [ ] Endpoint specifications
+    - [ ] Message search endpoint parameters
     - [ ] Rate limits and quotas
-    - [ ] Error responses
+    - [ ] Error responses and handling
   - [ ] User Guide:
-    - [ ] Bot command reference
-    - [ ] Configuration options
-    - [ ] Usage examples
-  - [ ] Deployment Guide
+    - [ ] Bot command reference with examples
+    - [ ] Configuration options and best practices
+    - [ ] Usage examples and patterns
+  - [ ] Deployment Guide with monitoring setup
   - [ ] Contributing Guidelines
 
 ### Phase 12: Production Deployment
@@ -150,14 +150,14 @@
   - [x] Health monitoring endpoint (/health)
   - [x] Request logging middleware
   - [x] Error tracking system
-  - [x] Token usage monitoring
-- [ ] Advanced Operations:
-  - [ ] Performance metrics endpoint
-  - [ ] Automated database backups
-  - [ ] Rate limiting middleware
-  - [ ] Resource usage monitoring
-  - [ ] Log rotation system
-  - [ ] Automated deployment scripts
+  - [x] Token usage monitoring (with alerts)
+- [ ] Advanced Operations (Partial):
+  - [ ] Performance metrics endpoint (/metrics)
+  - [ ] Automated daily database backups
+  - [ ] Rate limiting middleware (needs validation)
+  - [ ] Resource usage monitoring dashboard
+  - [ ] Log rotation and retention
+  - [ ] Automated deployment pipeline
 
 Production Requirements:
 - [x] Basic Health Monitoring:
