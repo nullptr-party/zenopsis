@@ -80,8 +80,10 @@ describe("GroupConfigsRepository", () => {
       tokensUsed: 850, // 85% of limit
       content: "Test summary",
       messageCount: 10,
-      startTimestamp: new Date(),
-      endTimestamp: new Date()
+      startTimestamp: new Date().getTime(),
+      endTimestamp: new Date().getTime(),
+      format: 'markdown',
+      alertSent: 0
     });
 
     const usage = await repo.checkTokenUsage(123);
