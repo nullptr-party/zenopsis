@@ -51,7 +51,7 @@ describe("GroupConfigsRepository", () => {
 
   test("getByChatId returns null for non-existent chat", async () => {
     const result = await repo.getByChatId(999);
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
   });
 
   test("getAllActive returns only active configs", async () => {

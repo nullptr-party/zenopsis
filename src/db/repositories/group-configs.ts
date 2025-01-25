@@ -19,28 +19,30 @@ export class GroupConfigsRepository {
    * Create or update a group configuration
    */
   async upsert(config: GroupConfig) {
+    const values = {
+      chatId: config.chatId,
+      summaryInterval: config.summaryInterval,
+      minMessagesForSummary: config.minMessagesForSummary,
+      isActive: config.isActive,
+      maxDailyTokens: config.maxDailyTokens,
+      maxSummaryTokens: config.maxSummaryTokens,
+      tokenUsageAlert: config.tokenUsageAlert,
+      language: config.language,
+      schemaVersion: config.schemaVersion
+    };
+
+    // Remove undefined values
+    Object.keys(values).forEach(key => {
+      if (values[key] === undefined) {
+        delete values[key];
+      }
+    });
+
     const [created] = await db.insert(groupConfigs)
-      .values({
-        chatId: config.chatId,
-        summaryInterval: config.summaryInterval,
-        minMessagesForSummary: config.minMessagesForSummary,
-        isActive: config.isActive,
-        maxDailyTokens: config.maxDailyTokens,
-        maxSummaryTokens: config.maxSummaryTokens,
-        tokenUsageAlert: config.tokenUsageAlert,
-        language: config.language,
-        schemaVersion: config.schemaVersion,
-        maxDailyTokens: config.maxDailyTokens,
-        maxSummaryTokens: config.maxSummaryTokens,
-        tokenUsageAlert: config.tokenUsageAlert,
-      })
+      .values(values)
       .onConflictDoUpdate({
         target: groupConfigs.chatId,
-        set: {
-          summaryInterval: config.summaryInterval,
-          minMessagesForSummary: config.minMessagesForSummary,
-          isActive: config.isActive,
-        },
+        set: values
       })
       .returning();
 
