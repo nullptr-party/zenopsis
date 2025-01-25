@@ -62,11 +62,11 @@
 
 ### Phase 7: Enhanced Reference System
 - [x] Design message reference storage schema
-- [x] Implement message linking functionality:
-  - [x] Replies
-  - [x] Mentions
-  - [x] Context links
-  - [x] Similarity-based threads
+- [x] Complete reference implementation:
+  - [x] Reply tracking
+  - [x] Mention handling
+  - [x] Context links (similarity-based)
+  - [x] Explicit thread references
 - [x] Add topic detection and tracking
 - [x] Create unified threading system
 - [x] Add jump-to-message functionality
@@ -119,37 +119,33 @@
 ## Final Phases
 
 ### Phase 11: Testing and Documentation
-- [ ] Write unit tests for core functionality ➔ (tests/messages.test.ts needed)
-- [ ] Add integration tests ➔ (test group config workflows)
-- [ ] Create API documentation ➔ (docs/API.md needed)
-- [ ] Write user guide and bot commands list ➔ (docs/USAGE.md needed)
-- [ ] Document deployment process
-- [ ] Create contributing guidelines
-
-Testing Framework Priority:
-- [ ] Unit Tests:
-  - [ ] Message handling and references
-  - [ ] Group configuration management
-  - [ ] Summary generation and costs
-- [ ] Integration Tests:
-  - [ ] Bot command workflows
-  - [ ] Group management features
-  - [ ] Token usage tracking
+- [ ] Testing Framework Priority:
+  - [ ] Unit Tests:
+    - [ ] Message handling and references
+    - [ ] Group configuration management
+    - [ ] Summary generation and costs
+    - [ ] Token usage tracking
+  - [ ] Integration Tests:
+    - [ ] Bot command workflows
+    - [ ] Group management features
+    - [ ] API endpoint validation
+- [ ] Documentation Needs:
+  - [ ] API Reference (docs/API.md)
+  - [ ] User Guide (docs/USAGE.md)
+  - [ ] Deployment Guide
+  - [ ] Contributing Guidelines
 
 ### Phase 12: Production Deployment
-- [ ] Set up production environment
-- [x] Implement health checks:
-  - [x] /health endpoint
+- [x] Core Operational Features:
+  - [x] Health monitoring endpoint
   - [x] Request logging middleware
-  - [x] Error tracking
-- [ ] Add performance monitoring ➔ (metrics endpoint needed)
-- [ ] Set up automated backups
-- [ ] Create deployment scripts
-- [x] Implement logging:
-  - [x] Request middleware
-  - [x] Error logging
-  - [x] Token usage tracking
-- [ ] Add system status notifications
+  - [x] Error tracking system
+  - [x] Token usage monitoring
+- [ ] Advanced Operations:
+  - [ ] Performance metrics endpoint
+  - [ ] Automated database backups
+  - [ ] Alert escalation system
+  - [ ] Resource usage monitoring
 
 Production Requirements:
 - [x] Basic Health Monitoring:
