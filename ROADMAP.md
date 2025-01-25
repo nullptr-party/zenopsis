@@ -145,29 +145,32 @@
   - [x] Deployment Guide with monitoring setup
   - [x] Contributing Guidelines
 
-### Phase 12: Production Deployment ✓
+### Phase 12: Production Deployment
 - [x] Core Operational Features:
-  - [x] Health monitoring endpoint (/health)
-  - [x] Request logging middleware
-  - [x] Error tracking system
-  - [x] Token usage monitoring (with alerts)
-- [x] Advanced Operations:
-  - [x] Performance metrics endpoint (/metrics)
-  - [x] Automated daily database backups
-  - [x] Rate limiting middleware (implemented)
-  - [x] Resource usage monitoring dashboard
-  - [x] Log rotation and retention
-  - [x] Automated deployment pipeline
+  - [x] Request logging middleware (via message-logger)
+  - [x] Error tracking system (implemented in bot handlers)
+  - [x] Token usage monitoring (with alerts via GroupConfigsRepository)
+- [x] Rate Limiting:
+  - [x] Window-based rate limiting (60s window)
+  - [x] Per-user/chat limits
+  - [x] Automatic cleanup
+  - [x] User feedback messages
+- [ ] Advanced Operations:
+  - [ ] Performance metrics endpoint (/metrics)
+  - [ ] Automated database backups
+  - [ ] Resource usage monitoring
+  - [ ] Log rotation and retention
+  - [ ] Automated deployment pipeline
 
 Production Requirements:
-- [x] Basic Health Monitoring:
-  - [x] Health check endpoints
+- [x] Basic Monitoring:
   - [x] Request logging
   - [x] Token usage alerts
-- [x] Advanced Operations:
-  - [x] Performance metrics
-  - [x] Automated backups
-  - [x] Alert escalation
+  - [x] Rate limiting enforcement
+- [ ] Advanced Operations:
+  - [ ] Performance metrics
+  - [ ] Automated backups
+  - [ ] Alert escalation
 
 ## Questions to Consider
 1. What should be the default summary interval (e.g., 6 hours, 12 hours)?
