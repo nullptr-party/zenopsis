@@ -57,16 +57,16 @@
   - [x] Handle explicit threading via Telegram replies
   - [x] Implement context-based thread detection (keyword + similarity)
   - [x] Time-based proximity analysis
-  - [x] Text similarity matching (cosine similarity)
+  - [x] Text similarity matching (cosine similarity via findSimilarMessages)
   - [x] Name/mention detection
 
 ### Phase 7: Enhanced Reference System
 - [x] Design message reference storage schema
 - [x] Complete reference implementation:
-  - [x] Reply tracking
-  - [x] Mention handling
+  - [x] Reply tracking (messageReferences table)
+  - [x] Mention handling (detectMessageReferences)
   - [x] Context links (similarity-based)
-  - [x] Explicit thread references
+  - [x] Explicit thread references (threadId column)
 - [x] Add topic detection and tracking
 - [x] Create unified threading system
 - [x] Add jump-to-message functionality
@@ -85,10 +85,10 @@
     - [x] Reference integrity checks
 - [ ] Implement topic clustering
 - [x] Add cost tracking and limitations:
-  - [x] Track API token usage
-  - [x] Set configurable limits
-  - [x] Implement usage alerts (threshold-based, with cooldown)
-  - [x] Create cost reports (daily/monthly analytics)
+  - [x] Track API token usage (GroupConfigsRepository)
+  - [x] Set configurable limits (maxDailyTokens)
+  - [x] Implement usage alerts (threshold-based alerts with cooldown)
+  - [x] Create cost reports (generateCostReport with daily/monthly analytics)
 
 ### Phase 9: Group Management
 - [x] Add group-specific settings
@@ -97,7 +97,7 @@
 - [x] Add usage statistics
 - [x] Implement group welcome messages
 - [x] Add group-specific summary schedules
-- [x] Implement group-specific language settings
+- [x] Implement group-specific language settings (groupConfigs.language)
 
 ### Phase 10: Extended Features
 - [x] Add support for additional message types:
@@ -112,24 +112,28 @@
 - [x] Add multi-language support
 - [ ] Create user engagement metrics
 - [x] Implement conversation search:
-  - [x] Time filters
+  - [x] Time filters (MessagesRepository.searchMessages)
   - [x] Similarity thresholding
   - [x] Fuzzy matching
 
 ## Final Phases
 
 ### Phase 11: Testing and Documentation
-- [ ] Testing Framework Priority (Not Started):
+- [ ] Testing Framework Priority:
   - [ ] Unit Tests:
-    - [ ] Message handling and references (MessagesRepository)
-    - [ ] Group configuration management (GroupConfigsRepository)
-    - [ ] Summary generation and costs
-    - [ ] Token usage tracking (checkTokenUsage validation)
+    - [ ] Message reference persistence tests
+    - [ ] Group configuration CRUD operations
+    - [ ] Summary generation workflows
+    - [ ] Token alert threshold validation
   - [ ] Integration Tests:
     - [ ] Bot command workflows
     - [ ] Group management features
-    - [ ] API endpoint validation
-- [ ] Documentation Needs (Missing docs/ folder):
+    - [ ] Similarity search accuracy tests
+  - [ ] Performance Tests:
+    - [ ] Message processing throughput
+    - [ ] Summary generation latency
+    - [ ] Search response times
+- [ ] Documentation Needs:
   - [ ] API Reference:
     - [ ] Endpoint specifications
     - [ ] Rate limits and quotas
@@ -147,11 +151,13 @@
   - [x] Request logging middleware
   - [x] Error tracking system
   - [x] Token usage monitoring
-- [ ] Advanced Operations (Partial):
-  - [ ] Performance metrics endpoint (needs /metrics implementation)
-  - [ ] Automated database backups (no backup system)
-  - [ ] Alert escalation system (basic alerts only)
+- [ ] Advanced Operations:
+  - [ ] Performance metrics endpoint
+  - [ ] Automated database backups
+  - [ ] Rate limiting middleware
   - [ ] Resource usage monitoring
+  - [ ] Log rotation system
+  - [ ] Automated deployment scripts
 
 Production Requirements:
 - [x] Basic Health Monitoring:
