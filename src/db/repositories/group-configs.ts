@@ -9,6 +9,9 @@ export interface GroupConfig {
   isActive?: boolean;
   language?: string;
   schemaVersion?: number;
+  maxDailyTokens?: number;
+  maxSummaryTokens?: number;
+  tokenUsageAlert?: number;
 }
 
 export class GroupConfigsRepository {
@@ -22,9 +25,14 @@ export class GroupConfigsRepository {
         summaryInterval: config.summaryInterval,
         minMessagesForSummary: config.minMessagesForSummary,
         isActive: config.isActive,
-        language: config.language,
+        maxDailyTokens: config.maxDailyTokens,
+        maxSummaryTokens: config.maxSummaryTokens,
+        tokenUsageAlert: config.tokenUsageAlert,
         language: config.language,
         schemaVersion: config.schemaVersion,
+        maxDailyTokens: config.maxDailyTokens,
+        maxSummaryTokens: config.maxSummaryTokens,
+        tokenUsageAlert: config.tokenUsageAlert,
       })
       .onConflictDoUpdate({
         target: groupConfigs.chatId,

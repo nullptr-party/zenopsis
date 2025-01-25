@@ -26,6 +26,9 @@ export const groupConfigs = sqliteTable('group_configs', {
   summaryFormat: text('summary_format').notNull().default('markdown'),
   language: text('language').notNull().default('en'),
   schemaVersion: integer('schema_version').notNull().default(1),
+  maxDailyTokens: integer('max_daily_tokens'),
+  maxSummaryTokens: integer('max_summary_tokens'),
+  tokenUsageAlert: integer('token_usage_alert_percent'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
