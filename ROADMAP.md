@@ -61,7 +61,7 @@
   - [ ] Name/mention detection
 
 ### Phase 7: Enhanced Reference System
-- [ ] Design message reference storage schema
+- [x] Design message reference storage schema
 - [x] Implement message linking functionality
 - [ ] Add topic detection and tracking
 - [ ] Create unified threading system
@@ -101,7 +101,7 @@
   - [x] Videos
   - [x] Voice messages
   - [x] Documents
-  - [ ] Stickers
+  - [x] Stickers
 - [ ] Implement media content analysis
 - [ ] Add conversation topic detection
 - [ ] Implement sentiment analysis
