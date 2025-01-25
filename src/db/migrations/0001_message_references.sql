@@ -1,6 +1,6 @@
 -- Create message_references table
 CREATE TABLE IF NOT EXISTS message_references (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER PRIMARY KEY,
   source_message_id INTEGER NOT NULL,
   target_message_id INTEGER NOT NULL,
   reference_type TEXT NOT NULL,
