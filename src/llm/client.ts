@@ -15,6 +15,11 @@ export const instructor = Instructor({
 
 // Define summary schema using Zod
 export const SummarySchema = z.object({
+  title: z.string().describe('A brief title for the summary'),
+  sections: z.array(z.object({
+    title: z.string().describe('Section title'),
+    content: z.string().describe('Section content')
+  })).describe('Organized sections of the summary'),
   mainTopics: z.array(z.string()).describe('Main topics discussed in the conversation'),
   summary: z.string().describe('A concise summary of the conversation'),
   keyParticipants: z.array(z.string()).describe('Key participants in the conversation'),
