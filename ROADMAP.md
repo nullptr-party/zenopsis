@@ -55,14 +55,18 @@
   - [x] Check message format and encoding
 - [x] Implement message threading/conversation tracking:
   - [x] Handle explicit threading via Telegram replies
-  - [x] Implement context-based thread detection
+  - [x] Implement context-based thread detection (keyword + similarity)
   - [x] Time-based proximity analysis
-  - [x] Text similarity matching (embedding-based)
+  - [x] Text similarity matching (cosine similarity)
   - [x] Name/mention detection
 
 ### Phase 7: Enhanced Reference System
 - [x] Design message reference storage schema
-- [x] Implement message linking functionality
+- [x] Implement message linking functionality:
+  - [x] Replies
+  - [x] Mentions
+  - [x] Context links
+  - [x] Similarity-based threads
 - [x] Add topic detection and tracking
 - [x] Create unified threading system
 - [x] Add jump-to-message functionality
@@ -97,17 +101,20 @@
 
 ### Phase 10: Extended Features
 - [x] Add support for additional message types:
-  - [x] Images and photos
+  - [x] Images and photos (with caption extraction)
   - [x] Videos
   - [x] Voice messages
   - [x] Documents
   - [x] Stickers
-- [x] Implement media content analysis
+- [x] Implement media content analysis (caption handling)
 - [x] Add conversation topic detection
 - [x] Implement sentiment analysis
 - [x] Add multi-language support
 - [ ] Create user engagement metrics
-- [x] Implement conversation search
+- [x] Implement conversation search:
+  - [x] Time filters
+  - [x] Similarity thresholding
+  - [x] Fuzzy matching
 
 ## Final Phases
 
@@ -131,17 +138,24 @@ Testing Framework Priority:
 
 ### Phase 12: Production Deployment
 - [ ] Set up production environment
-- [x] Implement health checks (/health endpoint)
+- [x] Implement health checks:
+  - [x] /health endpoint
+  - [x] Request logging middleware
+  - [x] Error tracking
 - [ ] Add performance monitoring ➔ (metrics endpoint needed)
 - [ ] Set up automated backups
 - [ ] Create deployment scripts
-- [x] Implement logging (bot middleware)
+- [x] Implement logging:
+  - [x] Request middleware
+  - [x] Error logging
+  - [x] Token usage tracking
 - [ ] Add system status notifications
 
 Production Requirements:
 - [x] Basic Health Monitoring:
   - [x] Health check endpoints
   - [x] Request logging
+  - [x] Token usage alerts
 - [ ] Advanced Operations:
   - [ ] Performance metrics
   - [ ] Automated backups
