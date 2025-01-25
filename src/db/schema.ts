@@ -61,7 +61,7 @@ export const summaryFeedback = sqliteTable('summary_feedback', {
   summaryId: integer('summary_id').references(() => summaries.id),
   chatId: integer('chat_id').notNull(),
   userId: integer('user_id').notNull(),
-  rating: integer('rating').notNull().check(sql`rating >= 1 AND rating <= 5`),
+  rating: integer('rating').notNull(),
   feedbackText: text('feedback_text'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
