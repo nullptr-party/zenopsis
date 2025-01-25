@@ -127,7 +127,7 @@ export class GroupConfigsRepository {
   async generateCostReport(chatId: number, startDate?: Date, endDate: Date = new Date()) {
     const start = startDate || new Date(endDate.getTime() - (30 * 24 * 60 * 60 * 1000)); // Default 30 days
 
-    return await db
+    const rawData = await db
       .select({
         date: sql<string>`date(datetime(created_at/1000, 'unixepoch'))`,
         totalTokens: sql<number>`sum(tokens_used)`,
@@ -142,5 +142,27 @@ export class GroupConfigsRepository {
       ))
       .groupBy(sql`date`)
       .orderBy(sql`date`);
+
+    // Format the report
+    const totalTokens = rawData.reduce((sum, day) => sum + (day.totalTokens || 0), 0);
+    const totalSummaries = rawData.reduce((sum, day) => sum + day.summaryCount, 0);
+    
+    return {
+      period: {
+        start: start.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0]
+      },
+      totals: {
+        tokens: totalTokens,
+        summaries: totalSummaries,
+        avgTokensPerSummary: totalSummaries ? Math.round(totalTokens / totalSummaries) : 0
+      },
+      dailyStats: rawData.map(day => ({
+        date: day.date,
+        tokens: day.totalTokens || 0,
+        summaries: day.summaryCount,
+        avgTokens: Math.round(day.avgTokensPerSummary || 0)
+      }))
+    };
   }
 }

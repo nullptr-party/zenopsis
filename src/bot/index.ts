@@ -121,7 +121,17 @@ export async function initializeBot() {
         // Check token usage before sending summary
         const usage = await groupConfigs.checkTokenUsage(chatId);
         if (usage?.shouldAlert) {
-          await ctx.reply(`⚠️ Token usage alert: ${usage.percentage.toFixed(1)}% of daily limit (${usage.currentUsage} / ${usage.limit} tokens)`);
+          const alertMsg = [
+            `⚠️ *Token Usage Alert*`,
+            `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
+            `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
+            '',
+            `To prevent service interruption:`,
+            `• Increase your daily token limit, or`,
+            `• Reduce summary frequency`
+          ].join('\n');
+          
+          await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
         }
 
         if (summary) {

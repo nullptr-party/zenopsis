@@ -35,7 +35,7 @@ function extractMessageMetadata(ctx: Context): MessageMetadata | null {
 /**
  * Validates if a message should be processed
  */
-function detectMessageReferences(ctx: Context): MessageReference[] {
+async function detectMessageReferences(ctx: Context): Promise<MessageReference[]> {
   const references: MessageReference[] = [];
   
   // Detect reply-to references
@@ -44,6 +44,29 @@ function detectMessageReferences(ctx: Context): MessageReference[] {
       type: ReferenceType.REPLY,
       targetMessageId: ctx.message.reply_to_message.message_id,
     });
+  }
+
+  // Add similarity-based thread detection
+  if (ctx.message?.text) {
+    const messagesRepo = new MessagesRepository();
+    const embedding = await generateTextEmbedding(ctx.message.text);
+    const similarMessages = await messagesRepo.findSimilarMessages(
+      ctx.chat.id,
+      embedding,
+      { 
+        threshold: 0.85,
+        limit: 1,
+        startTime: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+      }
+    );
+
+    if (similarMessages.length > 0) {
+      references.push({
+        type: ReferenceType.CONTEXT,
+        targetMessageId: similarMessages[0].messageId,
+        contextType: 'similarity'
+      });
+    }
   }
 
   // Detect explicit thread references
