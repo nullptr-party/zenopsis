@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { GroupConfigsRepository } from "../../../src/db/repositories/group-configs";
 import { db } from "../../../src/db";
-import { groupConfigs } from "../../../src/db/schema";
+import { groupConfigs, summaries } from "../../../src/db/schema";
 
 describe("GroupConfigsRepository", () => {
   let repo: GroupConfigsRepository;
