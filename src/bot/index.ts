@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import { config } from "dotenv";
 import { initializeDatabase } from "../db/init";
 import { createMessageLogger } from "./middleware/message-logger";
+import { rateLimiter } from "./middleware/rate-limiter";
 import { initializeSummaryScheduler, triggerManualSummary } from "../llm/scheduler";
 import { db } from "../db";
 import { groupConfigs } from "../db/schema";
@@ -44,7 +45,8 @@ export async function initializeBot() {
     // Initialize summary scheduler
     await initializeSummaryScheduler();
 
-    // Add message logger middleware
+    // Add middleware
+    bot.use(rateLimiter());
     bot.use(createMessageLogger());
 
     // Handle bot being added to a group
