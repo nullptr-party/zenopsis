@@ -17,6 +17,7 @@ export class MessagesRepository {
       timestamp: message.timestamp,
       threadId: message.threadId,
       replyToMessageId: message.replyToMessageId,
+      sentimentScore: message.sentimentScore,
     }).returning();
 
     // Store message references if they exist

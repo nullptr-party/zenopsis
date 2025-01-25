@@ -7,6 +7,8 @@ export interface GroupConfig {
   summaryInterval?: number;
   minMessagesForSummary?: number;
   isActive?: boolean;
+  language?: string;
+  schemaVersion?: number;
 }
 
 export class GroupConfigsRepository {
@@ -20,6 +22,9 @@ export class GroupConfigsRepository {
         summaryInterval: config.summaryInterval,
         minMessagesForSummary: config.minMessagesForSummary,
         isActive: config.isActive,
+        language: config.language,
+        language: config.language,
+        schemaVersion: config.schemaVersion,
       })
       .onConflictDoUpdate({
         target: groupConfigs.chatId,

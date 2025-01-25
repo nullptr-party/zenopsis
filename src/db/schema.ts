@@ -12,6 +12,7 @@ export const messages = sqliteTable('messages', {
   timestamp: integer('timestamp', { mode: 'number' }).notNull(),
   threadId: integer('thread_id'),
   replyToMessageId: integer('reply_to_message_id'),
+  sentimentScore: integer('sentiment_score'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -23,6 +24,8 @@ export const groupConfigs = sqliteTable('group_configs', {
   minMessagesForSummary: integer('min_messages_for_summary').notNull().default(10),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   summaryFormat: text('summary_format').notNull().default('markdown'),
+  language: text('language').notNull().default('en'),
+  schemaVersion: integer('schema_version').notNull().default(1),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
