@@ -12,7 +12,7 @@ export const messages = sqliteTable('messages', {
   timestamp: integer('timestamp', { mode: 'number' }).notNull(),
   threadId: integer('thread_id'),
   replyToMessageId: integer('reply_to_message_id'),
-  sentimentScore: integer('sentiment_score'),
+  sentiment_score: integer('sentiment_score'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   embedding: text('embedding'), // Store text-embedding-3-small vectors
 });
