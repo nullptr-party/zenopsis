@@ -87,9 +87,15 @@ export async function generateSummary(batch: MessageBatch) {
   });
 }
 
-export async function storeSummary(chatId: number, summary: any) {
-  // TODO: Implement summary storage in the database
-  // This will be implemented when we add the summary table to the database schema
-  console.log('Summary generated for chat', chatId, summary);
-  return summary;
+export async function storeSummary(chatId: number, summary: any, batch: MessageBatch) {
+  const [created] = await db.insert(summaries).values({
+    chatId,
+    content: summary.content,
+    messageCount: batch.messages.length,
+    startTimestamp: batch.startTime,
+    endTimestamp: batch.endTime,
+    tokensUsed: summary.usage?.total_tokens,
+    topics: JSON.stringify(summary.topics || []),
+  }).returning();
+  return created;
 } 
