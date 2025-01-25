@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS message_references (
   target_message_id INTEGER NOT NULL,
   reference_type TEXT NOT NULL,
   resolved_username TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
 -- Add sentiment_score column to messages if it doesn't exist
