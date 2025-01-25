@@ -1,5 +1,7 @@
 import { Context, Middleware } from "grammy";
 
+import { Message, MessageReference, ReferenceType } from '../../types/message';
+
 interface MessageMetadata {
   messageId: number;
   chatId: number;
@@ -33,6 +35,34 @@ function extractMessageMetadata(ctx: Context): MessageMetadata | null {
 /**
  * Validates if a message should be processed
  */
+function detectMessageReferences(ctx: Context): MessageReference[] {
+  const references: MessageReference[] = [];
+  
+  // Detect reply-to references
+  if (ctx.message?.reply_to_message) {
+    references.push({
+      type: ReferenceType.REPLY,
+      targetMessageId: ctx.message.reply_to_message.message_id,
+    });
+  }
+
+  // Detect mentions (@username)
+  if (ctx.message?.text) {
+    const mentionRegex = /@([a-zA-Z0-9_]{5,32})/g;
+    let matches: RegExpExecArray | null;
+    
+    while ((matches = mentionRegex.exec(ctx.message.text)) !== null) {
+      references.push({
+        type: ReferenceType.MENTION,
+        targetMessageId: -1,
+        resolvedUsername: matches[1]
+      });
+    }
+  }
+
+  return references;
+}
+
 function shouldProcessMessage(metadata: MessageMetadata): boolean {
   // Skip bot commands and bot messages
   if (metadata.isCommand || metadata.isFromBot) return false;
@@ -51,13 +81,22 @@ export const messageHandler: Middleware<Context> = async (ctx, next) => {
     const metadata = extractMessageMetadata(ctx);
     
     if (metadata && shouldProcessMessage(metadata)) {
-      // TODO: Store message in database
-      console.log("Processing message:", {
+      // Detect and add references
+      const references = detectMessageReferences(ctx);
+      
+      // Create full message object
+      const message: Message = {
+        messageId: metadata.messageId,
         chatId: metadata.chatId,
-        senderId: metadata.senderId,
-        text: metadata.text,
-        timestamp: metadata.timestamp,
-      });
+        userId: metadata.senderId,
+        username: metadata.senderName,
+        content: metadata.text || '',
+        timestamp: metadata.timestamp.getTime(),
+        references
+      };
+
+      // TODO: Store message with references
+      console.log('Processing message with references:', message);
     }
   } catch (error) {
     console.error("Error processing message:", error);

@@ -40,6 +40,15 @@ export const summaries = sqliteTable('summaries', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const messageReferences = sqliteTable('message_references', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sourceMessageId: integer('source_message_id').notNull(),
+  targetMessageId: integer('target_message_id').notNull(),
+  referenceType: text('reference_type').notNull(),
+  resolvedUsername: text('resolved_username'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const summaryFeedback = sqliteTable('summary_feedback', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   summaryId: integer('summary_id').references(() => summaries.id),

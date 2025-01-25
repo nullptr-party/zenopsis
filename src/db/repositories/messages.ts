@@ -1,6 +1,6 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { messages } from '../schema';
+import { messages, messageReferences } from '../schema';
 import type { Message } from '../../types/message';
 
 export class MessagesRepository {
@@ -18,6 +18,18 @@ export class MessagesRepository {
       threadId: message.threadId,
       replyToMessageId: message.replyToMessageId,
     }).returning();
+
+    // Store message references if they exist
+    if (message.references?.length) {
+      await db.insert(messageReferences).values(
+        message.references.map(ref => ({
+          sourceMessageId: created.id,
+          targetMessageId: ref.targetMessageId,
+          referenceType: ref.type,
+          resolvedUsername: ref.resolvedUsername,
+        }))
+      );
+    }
 
     return created;
   }
@@ -87,4 +99,12 @@ export class MessagesRepository {
         sql`${messages.timestamp} < ${date.getTime()}`
       ));
   }
-} 
+  /**
+   * Get references for a specific message
+   */
+  async getMessageReferences(messageId: number) {
+    return await db.query.messageReferences.findMany({
+      where: eq(messageReferences.sourceMessageId, messageId),
+    });
+  }
+}
