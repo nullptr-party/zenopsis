@@ -81,7 +81,7 @@ export async function generateSummary(batch: MessageBatch) {
 export async function storeSummary(chatId: number, summary: any, batch: MessageBatch) {
   const [created] = await db.insert(summaries).values({
     chatId,
-    content: summary.content,
+    content: JSON.stringify(summary),
     messageCount: batch.messages.length,
     startTimestamp: batch.startTime,
     endTimestamp: batch.endTime,
