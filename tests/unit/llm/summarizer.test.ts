@@ -61,6 +61,7 @@ describe("detectTopics", () => {
       forwardOrigin: null as string | null,
       mediaGroupId: null as string | null,
       rawJson: null as string | null,
+      languageCode: null as string | null,
       createdAt: new Date(),
     }));
   }

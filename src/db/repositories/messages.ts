@@ -23,6 +23,7 @@ export class MessagesRepository {
       forwardOrigin: message.forwardOrigin,
       mediaGroupId: message.mediaGroupId,
       rawJson: message.rawJson,
+      languageCode: message.languageCode,
     }).returning();
 
     // Store message references if they exist

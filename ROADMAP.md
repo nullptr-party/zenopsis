@@ -112,6 +112,7 @@
 - [x] Add conversation topic detection
 - [x] Implement sentiment analysis
 - [x] Add multi-language support
+- [x] Auto-detect group language from participant Telegram profiles
 - [x] Create user engagement metrics:
   - [x] Message count tracking
   - [x] Command usage tracking

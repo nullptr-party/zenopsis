@@ -212,6 +212,7 @@ export function createMessageLogger(): Middleware<Context> {
         forwardOrigin,
         mediaGroupId: msg.media_group_id,
         rawJson: JSON.stringify(msg),
+        languageCode: ctx.from?.language_code,
       });
 
       // Extract and save attachments

@@ -13,6 +13,7 @@ export interface Message {
   forwardOrigin?: string;
   mediaGroupId?: string;
   rawJson?: string;
+  languageCode?: string;
   references?: MessageReference[];
 }
 

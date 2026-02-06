@@ -8,6 +8,7 @@ import { db } from "../db";
 import { groupConfigs } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { GroupConfigsRepository } from "../db/repositories/group-configs";
+import { detectGroupLanguage } from "../services/language-detector";
 
 // Load environment variables
 config();
@@ -116,6 +117,13 @@ export async function initializeBot() {
           });
         }
 
+        // Auto-detect and update group language
+        const detectedLanguage = await detectGroupLanguage(chatId);
+        if (detectedLanguage) {
+          const groupConfigsRepo = new GroupConfigsRepository();
+          await groupConfigsRepo.upsert({ chatId, language: detectedLanguage });
+        }
+
         await ctx.reply("Generating summary... Please wait.");
         const summary = await triggerManualSummary(chatId);
 
@@ -189,6 +197,13 @@ export async function initializeBot() {
             minMessagesForSummary: 10,
             isActive: true,
           });
+        }
+
+        // Auto-detect and update group language
+        const detectedLanguage = await detectGroupLanguage(chatId);
+        if (detectedLanguage) {
+          const groupConfigsRepo = new GroupConfigsRepository();
+          await groupConfigsRepo.upsert({ chatId, language: detectedLanguage });
         }
 
         await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);

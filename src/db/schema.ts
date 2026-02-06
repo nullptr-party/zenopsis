@@ -18,6 +18,7 @@ export const messages = sqliteTable('messages', {
   forwardOrigin: text('forward_origin'),
   mediaGroupId: text('media_group_id'),
   rawJson: text('raw_json'),
+  languageCode: text('language_code'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

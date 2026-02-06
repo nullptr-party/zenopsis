@@ -76,6 +76,7 @@ export class GroupConfigsRepository {
         summaryInterval: config.summaryInterval,
         minMessagesForSummary: config.minMessagesForSummary,
         isActive: config.isActive,
+        language: config.language,
       })
       .where(eq(groupConfigs.chatId, chatId))
       .returning();
