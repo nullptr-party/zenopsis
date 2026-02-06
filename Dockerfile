@@ -17,7 +17,7 @@ FROM base AS release
 COPY --from=install /temp/prod/node_modules node_modules
 COPY src src
 COPY tsconfig.json drizzle.config.ts package.json ./
-RUN mkdir -p data
+RUN mkdir -p data && chown bun:bun data
 
 # run the app
 USER bun
