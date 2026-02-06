@@ -25,13 +25,42 @@ describe('detectGroupLanguage', () => {
     expect(result).toBeNull();
   });
 
-  test('returns the most common language', async () => {
-    // 3 Russian messages, 1 English
+  test('returns the most common language when coverage is sufficient', async () => {
+    // All messages have language_code (100% coverage)
     await db.insert(messages).values([
       createTestMessage({ chatId: CHAT_ID, languageCode: 'ru' }),
       createTestMessage({ chatId: CHAT_ID, languageCode: 'ru' }),
       createTestMessage({ chatId: CHAT_ID, languageCode: 'ru' }),
       createTestMessage({ chatId: CHAT_ID, languageCode: 'en' }),
+    ]);
+
+    const result = await detectGroupLanguage(CHAT_ID);
+    expect(result).toBe('ru');
+  });
+
+  test('returns null when language_code coverage is below threshold', async () => {
+    // 3 messages with language_code out of 30 total = 10% < 20% threshold
+    const msgs = [];
+    for (let i = 0; i < 27; i++) {
+      msgs.push(createTestMessage({ chatId: CHAT_ID, languageCode: null }));
+    }
+    msgs.push(createTestMessage({ chatId: CHAT_ID, languageCode: 'en' }));
+    msgs.push(createTestMessage({ chatId: CHAT_ID, languageCode: 'en' }));
+    msgs.push(createTestMessage({ chatId: CHAT_ID, languageCode: 'en' }));
+    await db.insert(messages).values(msgs);
+
+    const result = await detectGroupLanguage(CHAT_ID);
+    expect(result).toBeNull();
+  });
+
+  test('returns language when coverage meets threshold', async () => {
+    // 2 with language_code out of 5 total = 40% > 20% threshold
+    await db.insert(messages).values([
+      createTestMessage({ chatId: CHAT_ID, languageCode: 'ru' }),
+      createTestMessage({ chatId: CHAT_ID, languageCode: 'ru' }),
+      createTestMessage({ chatId: CHAT_ID, languageCode: null }),
+      createTestMessage({ chatId: CHAT_ID, languageCode: null }),
+      createTestMessage({ chatId: CHAT_ID, languageCode: null }),
     ]);
 
     const result = await detectGroupLanguage(CHAT_ID);
