@@ -1,7 +1,9 @@
-import { db } from "../../src/db";
-import { messages, groupConfigs, summaries } from "../../src/db/schema";
+import { db } from "@/db";
+import { messages, groupConfigs, summaries, messageAttachments, messageReferences } from "@/db/schema";
 
 export async function cleanDatabase() {
+  await db.delete(messageAttachments);
+  await db.delete(messageReferences);
   await db.delete(messages);
   await db.delete(groupConfigs);
   await db.delete(summaries);
@@ -15,6 +17,9 @@ export function createTestMessage(overrides = {}) {
     username: "test_user",
     content: "Test message content",
     timestamp: Date.now(),
+    messageType: "text",
+    senderFirstName: "Test",
+    senderLastName: "User",
     ...overrides
   };
 }
@@ -25,6 +30,19 @@ export function createTestConfig(overrides = {}) {
     summaryInterval: 21600,
     minMessagesForSummary: 10,
     isActive: true,
+    ...overrides
+  };
+}
+
+export function createTestAttachment(overrides = {}) {
+  return {
+    attachmentType: "photo",
+    fileId: `file_${Math.random().toString(36).slice(2)}`,
+    fileUniqueId: `unique_${Math.random().toString(36).slice(2)}`,
+    fileSize: 12345,
+    mimeType: "image/jpeg",
+    width: 800,
+    height: 600,
     ...overrides
   };
 }

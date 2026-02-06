@@ -8,13 +8,34 @@ export const messages = sqliteTable('messages', {
   chatId: integer('chat_id').notNull(),
   userId: integer('user_id').notNull(),
   username: text('username'),
-  content: text('content').notNull(),
+  content: text('content'),
   timestamp: integer('timestamp', { mode: 'number' }).notNull(),
   threadId: integer('thread_id'),
   replyToMessageId: integer('reply_to_message_id'),
-  sentiment_score: integer('sentiment_score'),
+  messageType: text('message_type').notNull().default('text'),
+  senderFirstName: text('sender_first_name'),
+  senderLastName: text('sender_last_name'),
+  forwardOrigin: text('forward_origin'),
+  mediaGroupId: text('media_group_id'),
+  rawJson: text('raw_json'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  embedding: text('embedding'), // Store text-embedding-3-small vectors
+});
+
+// Message attachments table
+export const messageAttachments = sqliteTable('message_attachments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  messageDbId: integer('message_db_id').notNull().references(() => messages.id),
+  attachmentType: text('attachment_type').notNull(),
+  fileId: text('file_id').notNull(),
+  fileUniqueId: text('file_unique_id').notNull(),
+  fileSize: integer('file_size'),
+  mimeType: text('mime_type'),
+  fileName: text('file_name'),
+  duration: integer('duration'),
+  width: integer('width'),
+  height: integer('height'),
+  localPath: text('local_path'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Group configurations table

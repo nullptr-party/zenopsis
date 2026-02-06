@@ -1,17 +1,8 @@
-import Instructor from '@instructor-ai/instructor';
-import OpenAI from 'openai';
+import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Initialize Instructor client
-export const instructor = Instructor({
-  client: openai,
-  mode: 'TOOLS',
-});
+// Model instance — provider auto-reads OPENAI_API_KEY from env
+export const model = openai('gpt-4o-mini');
 
 // Define summary schema using Zod
 export const SummarySchema = z.object({
@@ -35,7 +26,7 @@ export type Summary = z.infer<typeof SummarySchema>;
 
 // Rate limiting configuration
 export const RATE_LIMIT = {
-  maxTokensPerMinute: 90000, // OpenAI's default rate limit for GPT-3.5
+  maxTokensPerMinute: 90000,
   maxRequestsPerMinute: 3500,
 };
 
@@ -52,19 +43,17 @@ export async function withErrorHandling<T>(
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
-      if (error instanceof OpenAI.APIError) {
-        // Handle rate limiting
-        if (error.status === 429) {
-          await new Promise(resolve => setTimeout(resolve, delayMs * (attempt + 1)));
-          continue;
-        }
+
+      // Retry on rate limit (429) or transient errors
+      const message = (error as Error).message ?? '';
+      if (message.includes('429') || message.includes('rate limit')) {
+        await new Promise(resolve => setTimeout(resolve, delayMs * (attempt + 1)));
+        continue;
       }
-      
-      // Log the error but continue retrying
-      console.error(`OpenAI API error (attempt ${attempt + 1}/${retries}):`, error);
+
+      console.error(`LLM API error (attempt ${attempt + 1}/${retries}):`, error);
     }
   }
 
   throw lastError || new Error('Operation failed after multiple retries');
-} 
+}

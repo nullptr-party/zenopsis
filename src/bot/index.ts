@@ -3,10 +3,11 @@ import { config } from "dotenv";
 import { initializeDatabase } from "../db/init";
 import { createMessageLogger } from "./middleware/message-logger";
 import { rateLimiter } from "./middleware/rate-limiter";
-import { initializeSummaryScheduler, triggerManualSummary } from "../llm/scheduler";
+import { triggerManualSummary } from "../llm/scheduler";
 import { db } from "../db";
 import { groupConfigs } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { GroupConfigsRepository } from "../db/repositories/group-configs";
 
 // Load environment variables
 config();
@@ -42,18 +43,15 @@ export async function initializeBot() {
     // Initialize database
     await initializeDatabase();
 
-    // Initialize summary scheduler
-    await initializeSummaryScheduler();
-
-    // Add middleware
-    bot.use(rateLimiter());
+    // Add middleware - message logger BEFORE rate limiter so it sees all messages
     bot.use(createMessageLogger());
+    bot.use(rateLimiter());
 
     // Handle bot being added to a group
     bot.on("my_chat_member", async (ctx) => {
       if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
         const chatId = ctx.chat.id;
-        
+
         // Check if config already exists
         const existingConfig = await db.query.groupConfigs.findFirst({
           where: eq(groupConfigs.chatId, chatId),
@@ -103,11 +101,11 @@ export async function initializeBot() {
         }
 
         // Ensure group config exists
-        let config = await db.query.groupConfigs.findFirst({
+        let existingConfig = await db.query.groupConfigs.findFirst({
           where: eq(groupConfigs.chatId, chatId),
         });
 
-        if (!config && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
+        if (!existingConfig && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
           // Create config if it doesn't exist
           await db.insert(groupConfigs).values({
             chatId: chatId,
@@ -119,9 +117,10 @@ export async function initializeBot() {
 
         await ctx.reply("Generating summary... Please wait.");
         const summary = await triggerManualSummary(chatId);
-        
-        // Check token usage before sending summary
-        const usage = await groupConfigs.checkTokenUsage(chatId);
+
+        // Check token usage
+        const groupConfigsRepo = new GroupConfigsRepository();
+        const usage = await groupConfigsRepo.checkTokenUsage(chatId);
         if (usage?.shouldAlert) {
           const alertMsg = [
             `⚠️ *Token Usage Alert*`,
@@ -132,7 +131,7 @@ export async function initializeBot() {
             `• Increase your daily token limit, or`,
             `• Reduce summary frequency`
           ].join('\n');
-          
+
           await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
         }
 
@@ -149,11 +148,11 @@ export async function initializeBot() {
 
     // Log startup mode
     console.log(`Bot started successfully in ${isDebugMode ? 'debug' : 'production'} mode`);
-    
+
     // Start the bot
     await bot.start();
   } catch (error) {
     console.error("Failed to initialize bot:", error);
     throw error;
   }
-} 
+}

@@ -3,11 +3,31 @@ export interface Message {
   chatId: number;
   userId: number;
   username?: string;
-  content: string;
+  content?: string;
   timestamp: number;
   threadId?: number;
   replyToMessageId?: number;
+  messageType: string;
+  senderFirstName?: string;
+  senderLastName?: string;
+  forwardOrigin?: string;
+  mediaGroupId?: string;
+  rawJson?: string;
   references?: MessageReference[];
+}
+
+export interface MessageAttachment {
+  messageDbId: number;
+  attachmentType: string;
+  fileId: string;
+  fileUniqueId: string;
+  fileSize?: number;
+  mimeType?: string;
+  fileName?: string;
+  duration?: number;
+  width?: number;
+  height?: number;
+  localPath?: string;
 }
 
 export interface MessageReference {

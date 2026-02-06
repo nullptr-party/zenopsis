@@ -1,6 +1,6 @@
-import { instructor, SummarySchema, withErrorHandling } from './client';
+import { generateObject } from 'ai';
+import { model, SummarySchema, withErrorHandling } from './client';
 import { messages as messagesTable, summaries } from '../db/schema';
-import { z } from 'zod';
 
 const TOPIC_KEYWORDS = {
   tech: ['ai', 'code', 'server', 'database', 'api', 'framework'],
@@ -8,7 +8,6 @@ const TOPIC_KEYWORDS = {
   offTopic: ['meme', 'joke', 'offtopic', 'random', 'funny']
 };
 import type { InferSelectModel } from 'drizzle-orm';
-import { eq } from 'drizzle-orm';
 import { db } from '../db';
 
 // Configuration
@@ -27,9 +26,9 @@ interface MessageBatch {
 
 export async function batchMessages(chatId: number, timeWindowMinutes: number = 360): Promise<MessageBatch | null> {
   const cutoffTime = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
-  
+
   const batchMessages = await db.query.messages.findMany({
-    where: eq(messagesTable.chatId, chatId),
+    where: (messages, { eq }) => eq(messages.chatId, chatId),
     orderBy: (messages, { asc }) => [asc(messages.createdAt)],
     limit: MAX_MESSAGES_PER_BATCH,
   });
@@ -46,8 +45,12 @@ export async function batchMessages(chatId: number, timeWindowMinutes: number = 
   };
 }
 
-function detectTopics(messages: Message[]): string[] {
-  const content = messages.map(m => m.content).join(' ').toLowerCase();
+export function detectTopics(messages: Message[]): string[] {
+  const content = messages
+    .map(m => m.content)
+    .filter((c): c is string => c !== null)
+    .join(' ')
+    .toLowerCase();
   return Object.entries(TOPIC_KEYWORDS)
     .filter(([_, keywords]) => keywords.some(kw => content.includes(kw)))
     .map(([topic]) => topic);
@@ -55,32 +58,20 @@ function detectTopics(messages: Message[]): string[] {
 
 export async function generateSummary(batch: MessageBatch) {
   const messageText = batch.messages
+    .filter(msg => msg.content !== null)
     .map(msg => `${msg.username || 'Unknown'}: ${msg.content}`)
     .join('\n');
-  
+
   const detectedTopics = detectTopics(batch.messages);
 
   return await withErrorHandling(async () => {
-    const summary = await instructor.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that summarizes group chat conversations. Focus on key points, decisions, and action items.',
-        },
-        {
-          role: 'user',
-          content: `Please analyze and summarize the following conversation:\n\n${messageText}`,
-        },
-      ],
-      model: 'gpt-3.5-turbo',
-      response_model: {
-        schema: SummarySchema.extend({
-          topics: z.array(z.string()).optional()
-        }),
-        name: 'EnhancedSummary',
-      },
+    const { object: summary } = await generateObject({
+      model,
+      schema: SummarySchema,
+      system: 'You are a helpful assistant that summarizes group chat conversations. Focus on key points, decisions, and action items.',
+      prompt: `Please analyze and summarize the following conversation:\n\n${messageText}`,
       temperature: 0.7,
-      max_tokens: MAX_TOKENS_PER_REQUEST,
+      maxTokens: MAX_TOKENS_PER_REQUEST,
     });
 
     return summary;
@@ -95,7 +86,6 @@ export async function storeSummary(chatId: number, summary: any, batch: MessageB
     startTimestamp: batch.startTime,
     endTimestamp: batch.endTime,
     tokensUsed: summary.usage?.total_tokens,
-    topics: JSON.stringify(summary.topics || []),
   }).returning();
   return created;
-} 
+}

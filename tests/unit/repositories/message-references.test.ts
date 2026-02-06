@@ -1,14 +1,12 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { db } from '../../../src/db';
-import { messageReferences } from '../../../src/db/schema';
+import { db } from '@/db';
+import { messageReferences } from '@/db/schema';
 import { cleanDatabase, setupTestDatabase } from '../../helpers/test-utils';
-import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { sql } from 'drizzle-orm';
 
 describe('Message References Repository', () => {
   beforeEach(async () => {
     await cleanDatabase();
-    await migrate(db, { migrationsFolder: './src/db/migrations' });
   });
 
   test('should create message reference', async () => {

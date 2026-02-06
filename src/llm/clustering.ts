@@ -1,4 +1,5 @@
-import { instructor } from './client';
+import { generateObject } from 'ai';
+import { model } from './client';
 import { z } from 'zod';
 
 // Define the topic cluster schema
@@ -15,24 +16,17 @@ export const TopicClusterSchema = z.object({
 export type TopicCluster = z.infer<typeof TopicClusterSchema>;
 
 export async function clusterMessages(messages: Array<{ id: number, content: string }>) {
-  const prompt = `Analyze these messages and group them into coherent topics. 
+  const prompt = `Analyze these messages and group them into coherent topics.
     Consider semantic similarity, shared keywords, and conversation flow.
     Messages that don't fit clearly into any topic should be marked as unclustered.
     Ensure each topic has a descriptive name and relevant keywords.`;
 
   try {
-    const response = await instructor.chat<z.infer<typeof TopicClusterSchema>>({
-      messages: [
-        {
-          role: 'system',
-          content: prompt
-        },
-        {
-          role: 'user',
-          content: JSON.stringify(messages.map(m => m.content))
-        }
-      ],
-      schema: TopicClusterSchema
+    const { object: response } = await generateObject({
+      model,
+      schema: TopicClusterSchema,
+      system: prompt,
+      prompt: JSON.stringify(messages.map(m => m.content)),
     });
 
     return response;

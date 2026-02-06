@@ -12,9 +12,14 @@ export const rateLimiter = () => {
   const limits = new Map<string, RateLimit>();
 
   return async (ctx: Context, next: NextFunction) => {
+    // Only rate-limit bot commands, not regular messages
+    if (!ctx.message?.text?.startsWith('/')) {
+      return next();
+    }
+
     const now = Date.now();
     const key = `${ctx.chat?.id}:${ctx.from?.id}`;
-    
+
     // Clean up old entries
     for (const [storedKey, limit] of limits.entries()) {
       if (now - limit.timestamp > WINDOW_MS) {
@@ -23,18 +28,18 @@ export const rateLimiter = () => {
     }
 
     const currentLimit = limits.get(key) || { count: 0, timestamp: now };
-    
+
     if (now - currentLimit.timestamp > WINDOW_MS) {
       // Reset if window expired
       currentLimit.count = 1;
       currentLimit.timestamp = now;
     } else if (currentLimit.count >= MAX_REQUESTS) {
-      await ctx.reply("Rate limit exceeded. Please wait a minute before sending more messages.");
+      await ctx.reply("Rate limit exceeded. Please wait a minute before sending more commands.");
       return;
     } else {
       currentLimit.count++;
     }
-    
+
     limits.set(key, currentLimit);
     await next();
   };

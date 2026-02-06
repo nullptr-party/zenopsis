@@ -1,18 +1,15 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { GroupConfigsRepository } from "../../../src/db/repositories/group-configs";
-import { db } from "../../../src/db";
-import { groupConfigs, summaries } from "../../../src/db/schema";
+import { describe, expect, test, beforeEach } from "bun:test";
+import { GroupConfigsRepository } from "@/db/repositories/group-configs";
+import { db } from "@/db";
+import { summaries } from "@/db/schema";
+import { cleanDatabase } from "../../helpers/test-utils";
 
 describe("GroupConfigsRepository", () => {
   let repo: GroupConfigsRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await cleanDatabase();
     repo = new GroupConfigsRepository();
-  });
-
-  afterEach(async () => {
-    // Clean up test data
-    await db.delete(groupConfigs);
   });
 
   test("upsert creates new config", async () => {
@@ -62,7 +59,7 @@ describe("GroupConfigsRepository", () => {
     const active = await repo.getAllActive();
     
     expect(active).toHaveLength(2);
-    expect(active.map(c => c.chatId)).toEqual([1, 3]);
+    expect(active.map(c => c.chatId).sort()).toEqual([1, 3]);
   });
 
   test("checkTokenUsage returns alert when threshold exceeded", async () => {
@@ -80,10 +77,10 @@ describe("GroupConfigsRepository", () => {
       tokensUsed: 850, // 85% of limit
       content: "Test summary",
       messageCount: 10,
-      startTimestamp: new Date().getTime(),
-      endTimestamp: new Date().getTime(),
+      startTimestamp: new Date(),
+      endTimestamp: new Date(),
       format: 'markdown',
-      alertSent: 0
+      alertSent: false
     });
 
     const usage = await repo.checkTokenUsage(123);

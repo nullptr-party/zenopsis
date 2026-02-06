@@ -1,0 +1,7 @@
+services:
+  zenopsis:
+    image: ghcr.io/nullptr-party/zenopsis:latest
+    volumes:
+      - ./data:/usr/src/app/data
+    env_file: .env
+    restart: unless-stopped

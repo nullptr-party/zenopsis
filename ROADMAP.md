@@ -6,7 +6,7 @@
 - [x] Initialize TypeScript project with Bun
 - [x] Set up project structure (/src folders)
 - [x] Configure environment variables handling
-- [x] Create basic bot connection using GramIO
+- [x] Create basic bot connection using **Grammy**
 - [x] Implement basic error handling and logging system
 - [x] Add essential command handlers (/start, /help)
 
@@ -83,11 +83,9 @@
     - [x] Data type validations
     - [x] Field length and format checks
     - [x] Reference integrity checks
-- [x] Implement topic clustering:
-  - [x] Topic detection using LLM
-  - [x] Message clustering
-  - [x] Confidence scoring
-  - [x] Integration with summary generation
+- [x] Implement topic clustering (via `clustering.ts`)
+- [x] Message clustering + confidence scoring
+- [x] Integration with summary generation
 - [x] Add cost tracking and limitations:
   - [x] Track API token usage (GroupConfigsRepository)
   - [x] Set configurable limits (maxDailyTokens)
@@ -128,21 +126,11 @@
 ## Final Phases
 
 ### Phase 11: Testing and Documentation
-- [ ] Testing Framework Priority: ➔ No test files exist in codebase
-  - [ ] Unit Tests:
-    - [ ] Message reference persistence
-    - [ ] Group configuration CRUD operations
-    - [ ] Summary generation workflows
-    - [ ] Token alert threshold and cooldown validation
-  - [ ] Integration Tests:
-    - [ ] Bot command workflows
-    - [ ] Group management features
-    - [ ] Similarity search accuracy
-  - [ ] Performance Tests:
-    - [ ] Message processing throughput
-    - [ ] Summary generation latency
-    - [ ] Search response times
-- [ ] Documentation: ➔ No docs/ directory exists
+- [ ] **Testing**:
+  - [x] Basic unit tests for repositories (messages, references, group configs)
+  - [ ] Additional integration/end-to-end tests
+  - [ ] Performance/load testing
+- [ ] **Documentation**:
   - [ ] API Reference
   - [ ] User Guide
   - [ ] Deployment Guide
@@ -151,36 +139,31 @@
 ### Phase 12: Production Deployment
 - [x] Core Operational Features:
   - [x] Request logging middleware (via message-logger)
-  - [x] Error tracking system (implemented in bot handlers)
-  - [x] Token usage monitoring (with alerts via GroupConfigsRepository)
+  - [x] Error tracking system (in bot handlers)
+  - [x] Token usage monitoring (with alerts in GroupConfigsRepository)
 - [x] Rate Limiting:
   - [x] Window-based rate limiting (60s window)
   - [x] Per-user/chat limits
   - [x] Automatic cleanup
   - [x] User feedback messages
-- [ ] Advanced Operations:
-  - [ ] Performance metrics endpoint (/metrics)
-  - [ ] Automated database backups ➔ backup.ts not shown
-  - [ ] Resource usage monitoring ➔ No monitoring implementation
-  - [ ] Log rotation and retention
-  - [ ] Automated deployment pipeline
-
-Production Requirements:
 - [x] Basic Monitoring:
   - [x] Request logging
   - [x] Token usage alerts
   - [x] Rate limiting enforcement
+  - [x] User feedback messages
 - [ ] Advanced Operations:
-  - [ ] Performance metrics
-  - [ ] Automated backups
-  - [ ] Alert escalation
+  - [x] **Performance metrics** (`/metrics` endpoint)
+  - [ ] Automated database backups
+  - [ ] Resource usage alerts or additional monitoring
+  - [ ] Log rotation and retention
+  - [ ] Automated deployment pipeline
 
-Completed: 92%
-Remaining:
-- Phase 8: Topic clustering
-- Phase 10: User engagement metrics
-- Phase 11: Testing/Docs
-- Phase 12: Advanced monitoring
+### Progress Summary
+
+- **Completed**: ~95%
+- **Remaining**:
+  - Phase 11: Additional tests and full documentation
+  - Phase 12: Advanced monitoring & operational improvements (e.g., automated backups, resource usage alerts, log rotation)
 
 ## Questions to Consider
 1. What should be the default summary interval (e.g., 6 hours, 12 hours)?
@@ -202,7 +185,4 @@ Remaining:
 7. Add support for multiple languages
 8. Optimize token usage and costs
 
-Note: This roadmap is a living document and will be updated as development progresses and requirements evolve. 
-
-## Additional Features
- 
+> Note: This roadmap is a living document and will be updated as development progresses and requirements evolve.

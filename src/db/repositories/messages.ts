@@ -1,7 +1,7 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { messages, messageReferences } from '../schema';
-import type { Message } from '../../types/message';
+import { messages, messageReferences, messageAttachments } from '../schema';
+import type { Message, MessageAttachment } from '../../types/message';
 
 export class MessagesRepository {
   /**
@@ -17,7 +17,12 @@ export class MessagesRepository {
       timestamp: message.timestamp,
       threadId: message.threadId,
       replyToMessageId: message.replyToMessageId,
-      sentimentScore: message.sentimentScore,
+      messageType: message.messageType,
+      senderFirstName: message.senderFirstName,
+      senderLastName: message.senderLastName,
+      forwardOrigin: message.forwardOrigin,
+      mediaGroupId: message.mediaGroupId,
+      rawJson: message.rawJson,
     }).returning();
 
     // Store message references if they exist
@@ -33,6 +38,37 @@ export class MessagesRepository {
     }
 
     return created;
+  }
+
+  /**
+   * Create attachments for a message
+   */
+  async createAttachments(attachments: MessageAttachment[]) {
+    if (!attachments.length) return [];
+    return await db.insert(messageAttachments).values(
+      attachments.map(a => ({
+        messageDbId: a.messageDbId,
+        attachmentType: a.attachmentType,
+        fileId: a.fileId,
+        fileUniqueId: a.fileUniqueId,
+        fileSize: a.fileSize,
+        mimeType: a.mimeType,
+        fileName: a.fileName,
+        duration: a.duration,
+        width: a.width,
+        height: a.height,
+        localPath: a.localPath,
+      }))
+    ).returning();
+  }
+
+  /**
+   * Update the local path of an attachment after downloading
+   */
+  async updateAttachmentLocalPath(id: number, localPath: string) {
+    return await db.update(messageAttachments)
+      .set({ localPath })
+      .where(eq(messageAttachments.id, id));
   }
 
   /**
@@ -102,80 +138,11 @@ export class MessagesRepository {
   }
 
   /**
-   * Search messages with fuzzy matching
-   */
-  async searchMessages(chatId: number, query: string, options?: {
-    startTime?: Date;
-    endTime?: Date;
-    limit?: number;
-    similarityThreshold?: number;
-  }) {
-    let conditions = [
-      eq(messages.chatId, chatId),
-      options?.similarityThreshold 
-        ? sql`similarity(${messages.content}, ${query}) > ${options.similarityThreshold}`
-        : sql`${messages.content} LIKE '%' || ${query} || '%'`
-    ];
-
-    if (options?.startTime) {
-      conditions.push(sql`${messages.timestamp} >= ${options.startTime.getTime()}`);
-    }
-
-    if (options?.endTime) {
-      conditions.push(sql`${messages.timestamp} <= ${options.endTime.getTime()}`);
-    }
-
-    const searchQuery = db.select()
-      .from(messages)
-      .where(and(...conditions))
-      .orderBy(desc(messages.timestamp));
-
-    if (options?.limit) {
-      searchQuery.limit(options.limit);
-    }
-
-    return await searchQuery;
-  }
-  /**
    * Get references for a specific message
    */
   async getMessageReferences(messageId: number) {
     return await db.query.messageReferences.findMany({
       where: eq(messageReferences.sourceMessageId, messageId),
     });
-  }
-
-  /**
-   * Find messages similar to the given embedding vector
-   */
-  async findSimilarMessages(chatId: number, embedding: number[], options?: {
-    startTime?: Date;
-    endTime?: Date;
-    threshold?: number;
-    limit?: number;
-  }) {
-    let conditions = [
-      eq(messages.chatId, chatId),
-      sql`cosine_similarity(${messages.embedding}, ${JSON.stringify(embedding)}) > ${options?.threshold ?? 0.78}`
-    ];
-
-    if (options?.startTime) {
-      conditions.push(sql`${messages.timestamp} >= ${options.startTime.getTime()}`);
-    }
-
-    if (options?.endTime) {
-      conditions.push(sql`${messages.timestamp} <= ${options.endTime.getTime()}`);
-    }
-
-    const query = db.select()
-      .from(messages)
-      .where(and(...conditions))
-      .orderBy(desc(messages.timestamp));
-
-    if (options?.limit) {
-      query.limit(options.limit);
-    }
-
-    return await query;
   }
 }

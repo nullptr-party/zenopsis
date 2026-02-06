@@ -32,11 +32,11 @@ export class GroupConfigsRepository {
     };
 
     // Remove undefined values
-    Object.keys(values).forEach(key => {
+    for (const key of Object.keys(values) as Array<keyof typeof values>) {
       if (values[key] === undefined) {
         delete values[key];
       }
-    });
+    }
 
     const [created] = await db.insert(groupConfigs)
       .values(values)

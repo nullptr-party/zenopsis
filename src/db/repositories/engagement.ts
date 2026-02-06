@@ -27,10 +27,10 @@ export class UserEngagementRepository {
         commandCount: metrics.commandCount ?? 0,
         replyCount: metrics.replyCount ?? 0,
         mentionCount: metrics.mentionCount ?? 0,
-        lastActive: metrics.lastActive?.getTime() ?? now.getTime(),
+        lastActive: metrics.lastActive ?? now,
         dailyActiveStreak: metrics.dailyActiveStreak ?? 0,
         averageResponseTime: metrics.averageResponseTime,
-        updatedAt: now.getTime(),
+        updatedAt: now,
       })
       .onConflictDoUpdate({
         target: [userEngagement.userId, userEngagement.chatId],
@@ -94,8 +94,8 @@ export class UserEngagementRepository {
       .update(userEngagement)
       .set({
         dailyActiveStreak: newStreak,
-        lastActive: now.getTime(),
-        updatedAt: now.getTime(),
+        lastActive: now,
+        updatedAt: now,
       })
       .where(
         and(
