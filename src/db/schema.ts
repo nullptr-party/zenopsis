@@ -110,6 +110,20 @@ export const linkingTokens = sqliteTable('linking_tokens', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Scheduled tasks for persistent deferred execution
+export const scheduledTasks = sqliteTable('scheduled_tasks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  type: text('type').notNull(),
+  payload: text('payload').notNull(),
+  runAt: integer('run_at').notNull(), // unix ms
+  status: text('status').notNull().default('pending'), // pending | running | completed | failed
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  lastError: text('last_error'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+});
+
 export const userEngagement = sqliteTable('user_engagement', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull(),

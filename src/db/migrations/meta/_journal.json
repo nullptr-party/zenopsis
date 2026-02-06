@@ -22,6 +22,13 @@
       "when": 1770409584566,
       "tag": "0002_mysterious_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1770410773201,
+      "tag": "0003_numerous_the_liberteens",
+      "breakpoints": true
     }
   ]
 }

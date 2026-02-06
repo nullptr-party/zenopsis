@@ -1,7 +1,9 @@
 import { Context, Middleware } from 'grammy';
 import { AdminGroupLinksRepository } from '@/db/repositories/admin-group-links';
+import { scheduleTask } from '@/tasks/schedule';
 
 const LINK_PATTERN = /zenopsis-link:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/;
+const AUTO_DELETE_DELAY_MS = 15_000; // 15 seconds
 
 const adminGroupLinksRepo = new AdminGroupLinksRepository();
 
@@ -57,9 +59,21 @@ export function createLinkDetector(): Middleware<Context> {
         controlledChatTitle,
       );
 
-      await ctx.reply(
+      const confirmMsg = await ctx.reply(
         'This group is now controlled from an admin group. Commands like /summary will only work from the admin group.'
       );
+
+      // Auto-delete the forwarded token message and confirmation
+      await scheduleTask({
+        type: 'delete_message',
+        payload: { chatId: ctx.chat.id, messageId: msg.message_id },
+        runAt: Date.now() + AUTO_DELETE_DELAY_MS,
+      });
+      await scheduleTask({
+        type: 'delete_message',
+        payload: { chatId: ctx.chat.id, messageId: confirmMsg.message_id },
+        runAt: Date.now() + AUTO_DELETE_DELAY_MS,
+      });
 
       // Notify admin group
       try {

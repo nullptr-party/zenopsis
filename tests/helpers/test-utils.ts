@@ -1,7 +1,8 @@
 import { db } from "@/db";
-import { messages, groupConfigs, summaries, messageAttachments, messageReferences, adminGroupLinks, linkingTokens } from "@/db/schema";
+import { messages, groupConfigs, summaries, messageAttachments, messageReferences, adminGroupLinks, linkingTokens, scheduledTasks } from "@/db/schema";
 
 export async function cleanDatabase() {
+  await db.delete(scheduledTasks);
   await db.delete(linkingTokens);
   await db.delete(adminGroupLinks);
   await db.delete(messageAttachments);
@@ -55,6 +56,16 @@ export function createTestAdminGroupLink(overrides = {}) {
     controlledChatId: -1001234567890,
     linkedByUserId: 123456789,
     controlledChatTitle: "Test Controlled Group",
+    ...overrides
+  };
+}
+
+export function createTestScheduledTask(overrides = {}) {
+  return {
+    type: "delete_message",
+    payload: JSON.stringify({ chatId: -1001234567890, messageId: 42 }),
+    runAt: Date.now() + 60_000,
+    maxAttempts: 3,
     ...overrides
   };
 }

@@ -113,6 +113,16 @@
 - [x] Cache admin group IDs in message logger for performance
 - [x] Repository tests for admin group links and linking tokens
 
+### Phase 9c: Persistent Task Queue
+- [x] Add `scheduledTasks` table (SQLite-backed deferred task execution)
+- [x] Implement typed task system with discriminated union (`TaskPayloadMap`)
+- [x] Implement `ScheduledTasksRepository` (schedule, claim, complete, fail, cleanup)
+- [x] Implement poll-based worker with configurable interval
+- [x] Register `delete_message` handler (idempotent, treats "not found" as success)
+- [x] Refactor `/link` and link-detector `setTimeout` calls to use `scheduleTask()`
+- [x] Add graceful shutdown hooks (SIGINT/SIGTERM stop worker)
+- [x] Repository tests for scheduled tasks
+
 ### Phase 10: Extended Features
 - [x] Add support for additional message types:
   - [x] Images and photos (with caption extraction)

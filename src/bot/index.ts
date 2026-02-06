@@ -12,6 +12,9 @@ import { GroupConfigsRepository } from "../db/repositories/group-configs";
 import { AdminGroupLinksRepository } from "../db/repositories/admin-group-links";
 import { detectGroupLanguage } from "../services/language-detector";
 import { resolveTargetChatId } from "./helpers/resolve-target";
+import { registerTaskHandlers } from "../tasks/handlers";
+import { startWorker } from "../tasks/worker";
+import { scheduleTask } from "../tasks/schedule";
 
 // Load environment variables
 config();
@@ -46,6 +49,10 @@ export async function initializeBot() {
   try {
     // Initialize database
     await initializeDatabase();
+
+    // Start persistent task queue
+    registerTaskHandlers();
+    startWorker();
 
     // Add middleware - link detector first, then message logger, then rate limiter
     bot.use(createLinkDetector());
@@ -285,12 +292,19 @@ export async function initializeBot() {
 
         const token = await adminGroupLinksRepo.createLinkingToken(chatId, userId);
 
-        await ctx.reply(
+        const tokenMsg = await ctx.reply(
           "Forward this message to the group you want to control from here.\n\n" +
           `🔗 zenopsis-link:${token}\n\n` +
           "This token expires in 15 minutes.\n\n" +
           "⚠️ Note: Once linked, messages in this group will not be logged — it becomes a control-only group."
         );
+
+        // Auto-delete the token message after expiry (15 minutes)
+        await scheduleTask({
+          type: 'delete_message',
+          payload: { chatId, messageId: tokenMsg.message_id },
+          runAt: Date.now() + 15 * 60 * 1000,
+        });
       } catch (error) {
         console.error("Error generating link token:", error);
         await ctx.reply("Sorry, an error occurred. Please try again.");
