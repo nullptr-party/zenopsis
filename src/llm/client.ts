@@ -24,6 +24,17 @@ export const SummarySchema = z.object({
 
 export type Summary = z.infer<typeof SummarySchema>;
 
+// Define topics schema for meeting prep
+export const TopicsSchema = z.object({
+  topics: z.array(z.object({
+    title: z.string().describe('A short topic title (3-8 words)'),
+    summary: z.string().describe('Brief summary of the discussion (1-2 sentences)'),
+    participantCount: z.number().describe('Approximate number of participants'),
+    messageCount: z.number().describe('Approximate number of messages on this topic'),
+  })).min(1).max(12),
+});
+export type Topics = z.infer<typeof TopicsSchema>;
+
 // Rate limiting configuration
 export const RATE_LIMIT = {
   maxTokensPerMinute: 90000,

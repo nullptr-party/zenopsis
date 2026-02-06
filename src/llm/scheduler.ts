@@ -1,9 +1,9 @@
 import { db } from '../db';
 import { groupConfigs } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { batchMessages, generateSummary, storeSummary } from './summarizer';
+import { batchMessages, generateSummary, storeSummary, batchMessagesForTopics, generateTopics } from './summarizer';
 import { bot } from '../bot';
-import { Summary } from './client';
+import { Summary, Topics } from './client';
 
 export function formatSummary(summary: Summary): string {
   const sentiment = {
@@ -63,4 +63,50 @@ export async function triggerManualSummary(chatId: number): Promise<string | nul
   }
 
   return await processGroupSummary(config, false);
+}
+
+// Topics for meeting prep
+
+interface TopicsWithMeta extends Topics {
+  _meta: {
+    messageCount: number;
+    participantCount: number;
+    startTime: Date;
+    endTime: Date;
+  };
+}
+
+export function formatTopics(result: TopicsWithMeta): string {
+  const { topics, _meta } = result;
+
+  const lines: string[] = ['*Discussion Topics for Meeting Prep*\n'];
+
+  topics.forEach((topic, i) => {
+    lines.push(`*${i + 1}. ${topic.title}*`);
+    lines.push(topic.summary);
+    lines.push(`_${topic.participantCount} participants, ~${topic.messageCount} messages_\n`);
+  });
+
+  const hours = Math.max(1, Math.round(((_meta.endTime.getTime() - _meta.startTime.getTime()) / (1000 * 60 * 60))));
+  lines.push(`_Based on ${_meta.messageCount} messages from ${_meta.participantCount} participants over ${hours} hour(s)_`);
+
+  return lines.join('\n');
+}
+
+export async function triggerManualTopics(chatId: number, days: number = 14): Promise<string | null> {
+  const config = await db.query.groupConfigs.findFirst({
+    where: eq(groupConfigs.chatId, chatId),
+  });
+
+  if (!config) {
+    throw new Error('Group configuration not found');
+  }
+
+  const batch = await batchMessagesForTopics(chatId, days);
+  if (!batch) {
+    return null;
+  }
+
+  const result = await generateTopics(batch, config.language);
+  return formatTopics(result);
 }

@@ -1,5 +1,5 @@
 import { generateObject } from 'ai';
-import { model, SummarySchema, withErrorHandling } from './client';
+import { model, SummarySchema, TopicsSchema, withErrorHandling } from './client';
 import { messages as messagesTable, summaries } from '../db/schema';
 
 const TOPIC_KEYWORDS = {
@@ -8,6 +8,7 @@ const TOPIC_KEYWORDS = {
   offTopic: ['meme', 'joke', 'offtopic', 'random', 'funny']
 };
 import type { InferSelectModel } from 'drizzle-orm';
+import { and, eq, gte } from 'drizzle-orm';
 import { db } from '../db';
 
 // Configuration
@@ -88,4 +89,87 @@ export async function storeSummary(chatId: number, summary: any, batch: MessageB
     tokensUsed: summary.usage?.total_tokens,
   }).returning();
   return created;
+}
+
+// Topics extraction
+
+const MAX_MESSAGES_FOR_TOPICS = 500;
+const MIN_MESSAGES_FOR_TOPICS = 10;
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  ru: 'Russian',
+  es: 'Spanish',
+  de: 'German',
+  fr: 'French',
+  pt: 'Portuguese',
+  uk: 'Ukrainian',
+  zh: 'Chinese',
+  ja: 'Japanese',
+  ko: 'Korean',
+};
+
+export interface TopicsBatch extends MessageBatch {
+  participantNames: string[];
+}
+
+export async function batchMessagesForTopics(chatId: number, days: number = 14): Promise<TopicsBatch | null> {
+  const cutoffTimestamp = Date.now() - days * 24 * 60 * 60 * 1000;
+
+  const batch = await db.query.messages.findMany({
+    where: and(
+      eq(messagesTable.chatId, chatId),
+      gte(messagesTable.timestamp, cutoffTimestamp),
+    ),
+    orderBy: (messages, { asc }) => [asc(messages.timestamp)],
+    limit: MAX_MESSAGES_FOR_TOPICS,
+  });
+
+  if (batch.length < MIN_MESSAGES_FOR_TOPICS) {
+    return null;
+  }
+
+  const participantNames = [...new Set(
+    batch
+      .map(m => m.username || m.senderFirstName || 'Unknown')
+      .filter(Boolean)
+  )];
+
+  return {
+    messages: batch,
+    chatId,
+    startTime: new Date(batch[0].timestamp),
+    endTime: new Date(batch[batch.length - 1].timestamp),
+    participantNames,
+  };
+}
+
+export async function generateTopics(batch: TopicsBatch, language: string = 'en') {
+  const messageText = batch.messages
+    .filter(msg => msg.content !== null)
+    .map(msg => `${msg.username || msg.senderFirstName || 'Unknown'}: ${msg.content}`)
+    .join('\n');
+
+  const langName = LANGUAGE_NAMES[language] || language;
+
+  return await withErrorHandling(async () => {
+    const { object: topics } = await generateObject({
+      model,
+      schema: TopicsSchema,
+      system: `You are an assistant that extracts discussion topics from group chat history to help people prepare for offline meetings. Identify 10-12 most important and interesting topics. Respond in ${langName}.`,
+      prompt: `Analyze the following chat messages and extract the main discussion topics. For each topic, provide a short title, a brief summary (1-2 sentences), approximate participant count, and approximate message count.\n\n${messageText}`,
+      temperature: 0.7,
+      maxTokens: MAX_TOKENS_PER_REQUEST,
+    });
+
+    return {
+      ...topics,
+      _meta: {
+        messageCount: batch.messages.length,
+        participantCount: batch.participantNames.length,
+        startTime: batch.startTime,
+        endTime: batch.endTime,
+      },
+    };
+  });
 }
