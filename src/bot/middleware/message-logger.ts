@@ -1,10 +1,36 @@
 import { Context, Middleware } from 'grammy';
 import type { Message as TgMessage } from '@grammyjs/types';
 import { MessagesRepository } from '../../db/repositories';
+import { AdminGroupLinksRepository } from '../../db/repositories/admin-group-links';
 import type { MessageAttachment } from '../../types/message';
 import { downloadAttachmentsInBackground, type DownloadTask } from '../../services/attachment-downloader';
 
 const messagesRepo = new MessagesRepository();
+const adminGroupLinksRepo = new AdminGroupLinksRepository();
+
+// Cache of admin group chat IDs with TTL
+let adminGroupCache: Set<number> = new Set();
+let adminGroupCacheExpiry = 0;
+const CACHE_TTL_MS = 60_000; // 60 seconds
+
+async function isAdminGroupCached(chatId: number): Promise<boolean> {
+  if (Date.now() > adminGroupCacheExpiry) {
+    // Refresh cache
+    const link = await adminGroupLinksRepo.getByAdminChatId(chatId);
+    if (link) {
+      adminGroupCache.add(chatId);
+    } else {
+      adminGroupCache.delete(chatId);
+    }
+    adminGroupCacheExpiry = Date.now() + CACHE_TTL_MS;
+  }
+  return adminGroupCache.has(chatId);
+}
+
+export function invalidateAdminGroupCache() {
+  adminGroupCache = new Set();
+  adminGroupCacheExpiry = 0;
+}
 
 interface FileInfo {
   attachmentType: string;
@@ -186,6 +212,11 @@ export function createMessageLogger(): Middleware<Context> {
 
       // Only process group/supergroup messages
       if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') {
+        return next();
+      }
+
+      // Skip admin groups — they're control plane only
+      if (await isAdminGroupCached(ctx.chat.id)) {
         return next();
       }
 

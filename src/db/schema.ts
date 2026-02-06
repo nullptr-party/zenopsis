@@ -89,6 +89,27 @@ export const summaryFeedback = sqliteTable('summary_feedback', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Admin group links - one-to-one mapping between admin groups and controlled groups
+export const adminGroupLinks = sqliteTable('admin_group_links', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  adminChatId: integer('admin_chat_id').notNull().unique(),
+  controlledChatId: integer('controlled_chat_id').notNull().unique(),
+  linkedByUserId: integer('linked_by_user_id').notNull(),
+  controlledChatTitle: text('controlled_chat_title'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Linking tokens for onboarding admin group → controlled group
+export const linkingTokens = sqliteTable('linking_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  token: text('token').notNull().unique(),
+  adminChatId: integer('admin_chat_id').notNull(),
+  createdByUserId: integer('created_by_user_id').notNull(),
+  expiresAt: integer('expires_at').notNull(), // unix ms
+  usedAt: integer('used_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const userEngagement = sqliteTable('user_engagement', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull(),

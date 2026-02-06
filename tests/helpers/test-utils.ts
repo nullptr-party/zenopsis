@@ -1,7 +1,9 @@
 import { db } from "@/db";
-import { messages, groupConfigs, summaries, messageAttachments, messageReferences } from "@/db/schema";
+import { messages, groupConfigs, summaries, messageAttachments, messageReferences, adminGroupLinks, linkingTokens } from "@/db/schema";
 
 export async function cleanDatabase() {
+  await db.delete(linkingTokens);
+  await db.delete(adminGroupLinks);
   await db.delete(messageAttachments);
   await db.delete(messageReferences);
   await db.delete(messages);
@@ -43,6 +45,26 @@ export function createTestAttachment(overrides = {}) {
     mimeType: "image/jpeg",
     width: 800,
     height: 600,
+    ...overrides
+  };
+}
+
+export function createTestAdminGroupLink(overrides = {}) {
+  return {
+    adminChatId: -1009999999999,
+    controlledChatId: -1001234567890,
+    linkedByUserId: 123456789,
+    controlledChatTitle: "Test Controlled Group",
+    ...overrides
+  };
+}
+
+export function createTestLinkingToken(overrides = {}) {
+  return {
+    token: crypto.randomUUID(),
+    adminChatId: -1009999999999,
+    createdByUserId: 123456789,
+    expiresAt: Date.now() + 15 * 60 * 1000,
     ...overrides
   };
 }

@@ -101,6 +101,18 @@
 - [x] Add group-specific summary schedules
 - [x] Implement group-specific language settings (groupConfigs.language)
 
+### Phase 9b: Admin Group Feature
+- [x] Add admin group links table (one-to-one admin ↔ controlled group mapping)
+- [x] Add linking tokens table for onboarding flow
+- [x] Implement `/link` command to generate linking token
+- [x] Implement link-detector middleware to consume forwarded tokens
+- [x] Implement `/unlink` command to remove admin group link
+- [x] Refactor `/summary` and `/topics` to resolve target chat via admin group links
+- [x] Block commands in controlled groups (redirect to admin group)
+- [x] Skip message logging in admin groups (control plane only)
+- [x] Cache admin group IDs in message logger for performance
+- [x] Repository tests for admin group links and linking tokens
+
 ### Phase 10: Extended Features
 - [x] Add support for additional message types:
   - [x] Images and photos (with caption extraction)

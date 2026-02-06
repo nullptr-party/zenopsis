@@ -1,14 +1,17 @@
 import { Bot } from "grammy";
 import { config } from "dotenv";
 import { initializeDatabase } from "../db/init";
-import { createMessageLogger } from "./middleware/message-logger";
+import { createMessageLogger, invalidateAdminGroupCache } from "./middleware/message-logger";
+import { createLinkDetector } from "./middleware/link-detector";
 import { rateLimiter } from "./middleware/rate-limiter";
 import { triggerManualSummary, triggerManualTopics } from "../llm/scheduler";
 import { db } from "../db";
 import { groupConfigs } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { GroupConfigsRepository } from "../db/repositories/group-configs";
+import { AdminGroupLinksRepository } from "../db/repositories/admin-group-links";
 import { detectGroupLanguage } from "../services/language-detector";
+import { resolveTargetChatId } from "./helpers/resolve-target";
 
 // Load environment variables
 config();
@@ -44,9 +47,14 @@ export async function initializeBot() {
     // Initialize database
     await initializeDatabase();
 
-    // Add middleware - message logger BEFORE rate limiter so it sees all messages
+    // Add middleware - link detector first, then message logger, then rate limiter
+    bot.use(createLinkDetector());
     bot.use(createMessageLogger());
     bot.use(rateLimiter());
+
+    // Clean expired linking tokens on startup
+    const adminGroupLinksRepo = new AdminGroupLinksRepository();
+    await adminGroupLinksRepo.cleanExpiredTokens();
 
     // Handle bot being added to a group
     bot.on("my_chat_member", async (ctx) => {
@@ -79,7 +87,9 @@ export async function initializeBot() {
       "/start - Start the bot\n" +
       "/help - Show this help message\n" +
       `/summary - Generate a summary of recent messages (${isDebugMode ? 'owner' : 'admin'} only)\n` +
-      `/topics [days] - Extract discussion topics for meeting prep (${isDebugMode ? 'owner' : 'admin'} only, default: 14 days)`
+      `/topics [days] - Extract discussion topics for meeting prep (${isDebugMode ? 'owner' : 'admin'} only, default: 14 days)\n` +
+      `/link - Link this group as an admin group to control another group (${isDebugMode ? 'owner' : 'admin'} only)\n` +
+      `/unlink - Remove the link between this admin group and its controlled group (${isDebugMode ? 'owner' : 'admin'} only)`
     ));
 
     // Add summary command
@@ -93,61 +103,68 @@ export async function initializeBot() {
           return;
         }
 
-        // Check if user is admin/owner
+        // Resolve target chat (admin group → controlled group, or self)
         if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
+          const resolved = await resolveTargetChatId(chatId);
+          if (!resolved) {
+            await ctx.reply("Commands are managed from the admin group for this chat.");
+            return;
+          }
+
           const isAdmin = await isGroupAdmin(chatId, userId);
           if (!isAdmin) {
             await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
             return;
           }
-        }
 
-        // Ensure group config exists
-        let existingConfig = await db.query.groupConfigs.findFirst({
-          where: eq(groupConfigs.chatId, chatId),
-        });
+          const targetChatId = resolved.targetChatId;
 
-        if (!existingConfig && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
-          // Create config if it doesn't exist
-          await db.insert(groupConfigs).values({
-            chatId: chatId,
-            summaryInterval: 21600,
-            minMessagesForSummary: 10,
-            isActive: true,
+          // Ensure group config exists for target
+          let existingConfig = await db.query.groupConfigs.findFirst({
+            where: eq(groupConfigs.chatId, targetChatId),
           });
-        }
 
-        // Auto-detect and update group language
-        const detectedLanguage = await detectGroupLanguage(chatId);
-        if (detectedLanguage) {
+          if (!existingConfig) {
+            await db.insert(groupConfigs).values({
+              chatId: targetChatId,
+              summaryInterval: 21600,
+              minMessagesForSummary: 10,
+              isActive: true,
+            });
+          }
+
+          // Auto-detect and update group language for target
+          const detectedLanguage = await detectGroupLanguage(targetChatId);
+          if (detectedLanguage) {
+            const groupConfigsRepo = new GroupConfigsRepository();
+            await groupConfigsRepo.upsert({ chatId: targetChatId, language: detectedLanguage });
+          }
+
+          await ctx.reply("Generating summary... Please wait.");
+          const summary = await triggerManualSummary(targetChatId);
+
+          // Check token usage for target
           const groupConfigsRepo = new GroupConfigsRepository();
-          await groupConfigsRepo.upsert({ chatId, language: detectedLanguage });
-        }
+          const usage = await groupConfigsRepo.checkTokenUsage(targetChatId);
+          if (usage?.shouldAlert) {
+            const alertMsg = [
+              `⚠️ *Token Usage Alert*`,
+              `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
+              `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
+              '',
+              `To prevent service interruption:`,
+              `• Increase your daily token limit, or`,
+              `• Reduce summary frequency`
+            ].join('\n');
 
-        await ctx.reply("Generating summary... Please wait.");
-        const summary = await triggerManualSummary(chatId);
+            await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
+          }
 
-        // Check token usage
-        const groupConfigsRepo = new GroupConfigsRepository();
-        const usage = await groupConfigsRepo.checkTokenUsage(chatId);
-        if (usage?.shouldAlert) {
-          const alertMsg = [
-            `⚠️ *Token Usage Alert*`,
-            `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
-            `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
-            '',
-            `To prevent service interruption:`,
-            `• Increase your daily token limit, or`,
-            `• Reduce summary frequency`
-          ].join('\n');
-
-          await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
-        }
-
-        if (summary) {
-          await ctx.reply(summary, { parse_mode: 'Markdown' });
-        } else {
-          await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
+          if (summary) {
+            await ctx.reply(summary, { parse_mode: 'Markdown' });
+          } else {
+            await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
+          }
         }
       } catch (error) {
         console.error("Error generating summary:", error);
@@ -166,57 +183,167 @@ export async function initializeBot() {
           return;
         }
 
-        // Check if user is admin/owner
+        // Resolve target chat (admin group → controlled group, or self)
         if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
+          const resolved = await resolveTargetChatId(chatId);
+          if (!resolved) {
+            await ctx.reply("Commands are managed from the admin group for this chat.");
+            return;
+          }
+
           const isAdmin = await isGroupAdmin(chatId, userId);
           if (!isAdmin) {
             await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
             return;
           }
-        }
 
-        // Parse optional days argument
-        const args = ctx.match?.toString().trim();
-        let days = 14;
-        if (args) {
-          const parsed = parseInt(args, 10);
-          if (!isNaN(parsed) && parsed > 0 && parsed <= 365) {
-            days = parsed;
+          const targetChatId = resolved.targetChatId;
+
+          // Parse optional days argument
+          const args = ctx.match?.toString().trim();
+          let days = 14;
+          if (args) {
+            const parsed = parseInt(args, 10);
+            if (!isNaN(parsed) && parsed > 0 && parsed <= 365) {
+              days = parsed;
+            }
           }
-        }
 
-        // Ensure group config exists
-        let existingConfig = await db.query.groupConfigs.findFirst({
-          where: eq(groupConfigs.chatId, chatId),
-        });
-
-        if (!existingConfig && (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
-          await db.insert(groupConfigs).values({
-            chatId: chatId,
-            summaryInterval: 21600,
-            minMessagesForSummary: 10,
-            isActive: true,
+          // Ensure group config exists for target
+          let existingConfig = await db.query.groupConfigs.findFirst({
+            where: eq(groupConfigs.chatId, targetChatId),
           });
-        }
 
-        // Auto-detect and update group language
-        const detectedLanguage = await detectGroupLanguage(chatId);
-        if (detectedLanguage) {
-          const groupConfigsRepo = new GroupConfigsRepository();
-          await groupConfigsRepo.upsert({ chatId, language: detectedLanguage });
-        }
+          if (!existingConfig) {
+            await db.insert(groupConfigs).values({
+              chatId: targetChatId,
+              summaryInterval: 21600,
+              minMessagesForSummary: 10,
+              isActive: true,
+            });
+          }
 
-        await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);
-        const result = await triggerManualTopics(chatId, days);
+          // Auto-detect and update group language for target
+          const detectedLanguage = await detectGroupLanguage(targetChatId);
+          if (detectedLanguage) {
+            const groupConfigsRepo = new GroupConfigsRepository();
+            await groupConfigsRepo.upsert({ chatId: targetChatId, language: detectedLanguage });
+          }
 
-        if (result) {
-          await ctx.reply(result, { parse_mode: 'Markdown' });
-        } else {
-          await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
+          await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);
+          const result = await triggerManualTopics(targetChatId, days);
+
+          if (result) {
+            await ctx.reply(result, { parse_mode: 'Markdown' });
+          } else {
+            await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
+          }
         }
       } catch (error) {
         console.error("Error extracting topics:", error);
         await ctx.reply("Sorry, I couldn't extract topics at this time. Please try again later.");
+      }
+    });
+
+    // Add link command (for admin groups)
+    bot.command("link", async (ctx) => {
+      try {
+        const chatId = ctx.chat.id;
+        const userId = ctx.from?.id;
+
+        if (!userId) {
+          await ctx.reply("Sorry, I couldn't identify the user.");
+          return;
+        }
+
+        if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
+          await ctx.reply("This command can only be used in a group.");
+          return;
+        }
+
+        const isAdmin = await isGroupAdmin(chatId, userId);
+        if (!isAdmin) {
+          await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
+          return;
+        }
+
+        // Check if already linked as an admin group
+        const existingLink = await adminGroupLinksRepo.getByAdminChatId(chatId);
+        if (existingLink) {
+          await ctx.reply(
+            `This group is already linked as an admin group for "${existingLink.controlledChatTitle || 'Unknown Group'}". Use /unlink first to remove the existing link.`
+          );
+          return;
+        }
+
+        // Check if this group is being controlled by another admin group
+        const controlledLink = await adminGroupLinksRepo.getByControlledChatId(chatId);
+        if (controlledLink) {
+          await ctx.reply("This group is controlled by another admin group. It cannot also be an admin group.");
+          return;
+        }
+
+        const token = await adminGroupLinksRepo.createLinkingToken(chatId, userId);
+
+        await ctx.reply(
+          "Forward this message to the group you want to control from here.\n\n" +
+          `🔗 zenopsis-link:${token}\n\n` +
+          "This token expires in 15 minutes.\n\n" +
+          "⚠️ Note: Once linked, messages in this group will not be logged — it becomes a control-only group."
+        );
+      } catch (error) {
+        console.error("Error generating link token:", error);
+        await ctx.reply("Sorry, an error occurred. Please try again.");
+      }
+    });
+
+    // Add unlink command (for admin groups)
+    bot.command("unlink", async (ctx) => {
+      try {
+        const chatId = ctx.chat.id;
+        const userId = ctx.from?.id;
+
+        if (!userId) {
+          await ctx.reply("Sorry, I couldn't identify the user.");
+          return;
+        }
+
+        if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
+          await ctx.reply("This command can only be used in a group.");
+          return;
+        }
+
+        const isAdmin = await isGroupAdmin(chatId, userId);
+        if (!isAdmin) {
+          await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
+          return;
+        }
+
+        const existingLink = await adminGroupLinksRepo.getByAdminChatId(chatId);
+        if (!existingLink) {
+          await ctx.reply("This group is not linked to any group.");
+          return;
+        }
+
+        await adminGroupLinksRepo.removeLink(chatId);
+        invalidateAdminGroupCache();
+
+        await ctx.reply(
+          `Unlinked from "${existingLink.controlledChatTitle || 'Unknown Group'}". Commands in that group will work normally again.`
+        );
+
+        // Try to notify the previously controlled group
+        try {
+          await ctx.api.sendMessage(
+            existingLink.controlledChatId,
+            "This group has been unlinked from its admin group. Commands like /summary now work directly in this group again."
+          );
+        } catch (err) {
+          // Controlled group might not be reachable
+        }
+      } catch (error) {
+        console.error("Error unlinking:", error);
+        await ctx.reply("Sorry, an error occurred. Please try again.");
       }
     });
 
