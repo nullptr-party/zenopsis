@@ -1,0 +1,13 @@
+services:
+  zenopsis:
+    image: ghcr.io/nullptr-party/zenopsis:latest
+    container_name: zenopsis-bot
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - zenopsis_data:/usr/src/app/data
+
+volumes:
+  zenopsis_data:
+    external: true
