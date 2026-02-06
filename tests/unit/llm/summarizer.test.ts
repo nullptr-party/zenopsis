@@ -1,6 +1,8 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { batchMessages, detectTopics } from "@/llm/summarizer";
+import { batchMessages, detectTopics, storeSummary } from "@/llm/summarizer";
 import { MessagesRepository } from "@/db/repositories/messages";
+import { db } from "@/db";
+import { summaries } from "@/db/schema";
 import { cleanDatabase, createTestMessage } from "../../helpers/test-utils";
 
 describe("batchMessages", () => {
@@ -93,5 +95,146 @@ describe("detectTopics", () => {
     msgs.push({ ...msgs[0], id: 99, content: null });
     const topics = detectTopics(msgs);
     expect(Array.isArray(topics)).toBe(true);
+  });
+});
+
+describe("batchMessages - timestamps", () => {
+  let repo: MessagesRepository;
+
+  beforeEach(async () => {
+    await cleanDatabase();
+    repo = new MessagesRepository();
+  });
+
+  test("startTime and endTime are valid dates derived from message timestamps", async () => {
+    const baseTime = Date.now() - 60000;
+    for (let i = 0; i < 6; i++) {
+      await repo.create(createTestMessage({
+        messageId: i,
+        chatId: -200,
+        timestamp: baseTime + i * 10000,
+      }));
+    }
+
+    const result = await batchMessages(-200);
+    expect(result).not.toBeNull();
+    expect(result!.startTime.getTime()).toBe(baseTime);
+    expect(result!.endTime.getTime()).toBe(baseTime + 5 * 10000);
+    expect(Number.isNaN(result!.startTime.getTime())).toBe(false);
+    expect(Number.isNaN(result!.endTime.getTime())).toBe(false);
+  });
+
+  test("messages are ordered by timestamp ascending", async () => {
+    const baseTime = Date.now();
+    // Insert in reverse order
+    for (let i = 5; i >= 0; i--) {
+      await repo.create(createTestMessage({
+        messageId: i,
+        chatId: -200,
+        timestamp: baseTime + i * 10000,
+      }));
+    }
+
+    const result = await batchMessages(-200);
+    expect(result).not.toBeNull();
+    for (let i = 1; i < result!.messages.length; i++) {
+      expect(result!.messages[i].timestamp).toBeGreaterThanOrEqual(result!.messages[i - 1].timestamp);
+    }
+  });
+});
+
+describe("storeSummary", () => {
+  let repo: MessagesRepository;
+
+  beforeEach(async () => {
+    await cleanDatabase();
+    repo = new MessagesRepository();
+  });
+
+  test("serializes summary object as JSON in content field", async () => {
+    const summaryObj = {
+      title: "Test Summary",
+      sections: [{ heading: "Topic 1", body: "Discussion about tests" }],
+      mainTopics: ["testing"],
+      summary: "A brief summary",
+      keyParticipants: ["user1"],
+      actionItems: [],
+      sentiment: "neutral",
+    };
+
+    const msgs = [];
+    const baseTime = Date.now() - 60000;
+    for (let i = 0; i < 5; i++) {
+      const created = await repo.create(createTestMessage({
+        messageId: i,
+        chatId: -300,
+        timestamp: baseTime + i * 1000,
+      }));
+      msgs.push(created);
+    }
+
+    const batch = {
+      messages: msgs,
+      chatId: -300,
+      startTime: new Date(baseTime),
+      endTime: new Date(baseTime + 4 * 1000),
+    };
+
+    const created = await storeSummary(-300, summaryObj, batch);
+
+    expect(created.content).toBe(JSON.stringify(summaryObj));
+    const parsed = JSON.parse(created.content);
+    expect(parsed.title).toBe("Test Summary");
+    expect(parsed.mainTopics).toEqual(["testing"]);
+  });
+
+  test("stores valid start and end timestamps", async () => {
+    const summaryObj = { title: "Test", summary: "test" };
+    // Use second-aligned timestamps (SQLite integer timestamps lose ms precision)
+    const baseTime = Math.floor(Date.now() / 1000) * 1000 - 60000;
+
+    const msgs = [];
+    for (let i = 0; i < 5; i++) {
+      const created = await repo.create(createTestMessage({
+        messageId: i,
+        chatId: -300,
+        timestamp: baseTime + i * 1000,
+      }));
+      msgs.push(created);
+    }
+
+    const startTime = new Date(baseTime);
+    const endTime = new Date(baseTime + 4 * 1000);
+    const batch = { messages: msgs, chatId: -300, startTime, endTime };
+
+    const created = await storeSummary(-300, summaryObj, batch);
+
+    expect(created.startTimestamp).toEqual(startTime);
+    expect(created.endTimestamp).toEqual(endTime);
+  });
+
+  test("stores messageCount from batch", async () => {
+    const summaryObj = { title: "Test" };
+    const baseTime = Date.now();
+
+    const msgs = [];
+    for (let i = 0; i < 7; i++) {
+      const created = await repo.create(createTestMessage({
+        messageId: i,
+        chatId: -300,
+        timestamp: baseTime + i * 1000,
+      }));
+      msgs.push(created);
+    }
+
+    const batch = {
+      messages: msgs,
+      chatId: -300,
+      startTime: new Date(baseTime),
+      endTime: new Date(baseTime + 6 * 1000),
+    };
+
+    const created = await storeSummary(-300, summaryObj, batch);
+    expect(created.messageCount).toBe(7);
   });
 });

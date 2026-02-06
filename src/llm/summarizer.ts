@@ -29,7 +29,7 @@ export async function batchMessages(chatId: number, timeWindowMinutes: number = 
 
   const batchMessages = await db.query.messages.findMany({
     where: (messages, { eq }) => eq(messages.chatId, chatId),
-    orderBy: (messages, { asc }) => [asc(messages.createdAt)],
+    orderBy: (messages, { asc }) => [asc(messages.timestamp)],
     limit: MAX_MESSAGES_PER_BATCH,
   });
 
@@ -40,8 +40,8 @@ export async function batchMessages(chatId: number, timeWindowMinutes: number = 
   return {
     messages: batchMessages,
     chatId,
-    startTime: new Date(batchMessages[0].createdAt),
-    endTime: new Date(batchMessages[batchMessages.length - 1].createdAt),
+    startTime: new Date(batchMessages[0].timestamp),
+    endTime: new Date(batchMessages[batchMessages.length - 1].timestamp),
   };
 }
 
