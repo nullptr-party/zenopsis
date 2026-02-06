@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 // Model instance — provider auto-reads OPENAI_API_KEY from env
-export const model = openai('gpt-4o-mini');
+export const model = openai('gpt-5.2-chat-latest');
 
 // Define summary schema using Zod
 export const SummarySchema = z.object({
