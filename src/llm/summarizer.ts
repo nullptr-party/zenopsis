@@ -156,7 +156,7 @@ export async function generateTopics(batch: TopicsBatch, language: string = 'en'
     const { object: topics } = await generateObject({
       model,
       schema: TopicsSchema,
-      system: `You are an assistant that extracts discussion topics from group chat history to help people prepare for offline meetings. Identify 10-12 most important and interesting topics. Respond in ${langName}.`,
+      system: `You are an assistant that extracts discussion topics from group chat history to help people prepare for offline meetings. Identify 10-12 most important and interesting topics. Skip obvious spam messages — especially those that someone replied to with /sban or similar ban commands. Do not create topics from spam content. Respond in ${langName}.`,
       prompt: `Analyze the following chat messages and extract the main discussion topics. For each topic, provide a short title, a brief summary (1-2 sentences), approximate participant count, and approximate message count.\n\n${messageText}`,
       temperature: 0.7,
       maxTokens: MAX_TOKENS_PER_REQUEST,
