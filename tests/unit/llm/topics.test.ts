@@ -39,17 +39,35 @@ describe("batchMessagesForTopics", () => {
     expect(result!.participantNames.length).toBeGreaterThan(0);
   });
 
-  test("limits to 500 messages", async () => {
-    for (let i = 0; i < 510; i++) {
+  test("returns all messages when under the limit", async () => {
+    for (let i = 0; i < 100; i++) {
       await repo.create(createTestMessage({
         messageId: i,
         chatId: -100,
-        timestamp: Date.now() - (510 - i) * 1000,
+        timestamp: Date.now() - (100 - i) * 1000,
       }));
     }
     const result = await batchMessagesForTopics(-100);
     expect(result).not.toBeNull();
-    expect(result!.messages).toHaveLength(500);
+    expect(result!.messages).toHaveLength(100);
+  });
+
+  test("evenly samples when over 5000 messages", async () => {
+    // Insert 5010 messages
+    for (let i = 0; i < 5010; i++) {
+      await repo.create(createTestMessage({
+        messageId: i,
+        chatId: -100,
+        timestamp: Date.now() - (5010 - i) * 1000,
+      }));
+    }
+    const result = await batchMessagesForTopics(-100);
+    expect(result).not.toBeNull();
+    expect(result!.messages).toHaveLength(5000);
+    // Should span the full time range (first and last messages included)
+    const first = result!.messages[0].timestamp;
+    const last = result!.messages[result!.messages.length - 1].timestamp;
+    expect(last - first).toBeGreaterThan(4000 * 1000);
   });
 
   test("only includes messages within the days window", async () => {

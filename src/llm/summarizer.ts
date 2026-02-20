@@ -93,7 +93,7 @@ export async function storeSummary(chatId: number, summary: any, batch: MessageB
 
 // Topics extraction
 
-const MAX_MESSAGES_FOR_TOPICS = 500;
+const MAX_MESSAGES_FOR_TOPICS = 5000;
 const MIN_MESSAGES_FOR_TOPICS = 10;
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -116,18 +116,22 @@ export interface TopicsBatch extends MessageBatch {
 export async function batchMessagesForTopics(chatId: number, days: number = 14): Promise<TopicsBatch | null> {
   const cutoffTimestamp = Date.now() - days * 24 * 60 * 60 * 1000;
 
-  const batch = await db.query.messages.findMany({
+  const allMessages = await db.query.messages.findMany({
     where: and(
       eq(messagesTable.chatId, chatId),
       gte(messagesTable.timestamp, cutoffTimestamp),
     ),
     orderBy: (messages, { asc }) => [asc(messages.timestamp)],
-    limit: MAX_MESSAGES_FOR_TOPICS,
   });
 
-  if (batch.length < MIN_MESSAGES_FOR_TOPICS) {
+  if (allMessages.length < MIN_MESSAGES_FOR_TOPICS) {
     return null;
   }
+
+  // Evenly sample messages if over the limit
+  const batch = allMessages.length <= MAX_MESSAGES_FOR_TOPICS
+    ? allMessages
+    : evenSample(allMessages, MAX_MESSAGES_FOR_TOPICS);
 
   const participantNames = [...new Set(
     batch
@@ -142,6 +146,15 @@ export async function batchMessagesForTopics(chatId: number, days: number = 14):
     endTime: new Date(batch[batch.length - 1].timestamp),
     participantNames,
   };
+}
+
+function evenSample<T>(items: T[], limit: number): T[] {
+  const step = items.length / limit;
+  const result: T[] = [];
+  for (let i = 0; i < limit; i++) {
+    result.push(items[Math.floor(i * step)]);
+  }
+  return result;
 }
 
 export async function generateTopics(batch: TopicsBatch, language: string = 'en') {

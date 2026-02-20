@@ -23,33 +23,28 @@ export function formatSummary(summary: Summary): string {
 }
 
 async function processGroupSummary(config: any, autoSend: boolean = false) {
-  try {
-    // Get messages batch for the group
-    const batch = await batchMessages(config.chatId, config.summaryInterval / 60);
+  // Get messages batch for the group
+  const batch = await batchMessages(config.chatId, config.summaryInterval / 60);
 
-    if (!batch) {
-      return null; // Not enough messages for summary
-    }
-
-    // Generate summary
-    const summary = await generateSummary(batch);
-    await storeSummary(config.chatId, summary, batch);
-
-    // Format summary
-    const formattedSummary = formatSummary(summary);
-
-    // If autoSend is true (scheduler) or it's a manual trigger without a return handler
-    if (autoSend) {
-      await bot.api.sendMessage(config.chatId, formattedSummary, {
-        parse_mode: 'Markdown',
-      });
-    }
-
-    return formattedSummary;
-  } catch (error) {
-    console.error(`Error processing summary for chat ${config.chatId}:`, error);
-    return null;
+  if (!batch) {
+    return null; // Not enough messages for summary
   }
+
+  // Generate summary
+  const summary = await generateSummary(batch);
+  await storeSummary(config.chatId, summary, batch);
+
+  // Format summary
+  const formattedSummary = formatSummary(summary);
+
+  // If autoSend is true (scheduler) or it's a manual trigger without a return handler
+  if (autoSend) {
+    await bot.api.sendMessage(config.chatId, formattedSummary, {
+      parse_mode: 'Markdown',
+    });
+  }
+
+  return formattedSummary;
 }
 
 // Export for manual trigger support

@@ -29,6 +29,65 @@ export const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 // Debug mode detection
 const isDebugMode = process.env.NODE_ENV === 'development' || process.argv.includes('--debug');
 
+interface CommandContext {
+  targetChatId: number;
+  config: typeof groupConfigs.$inferSelect;
+}
+
+async function resolveCommandContext(ctx: { chat: { id: number; type: string }; from?: { id: number } }, reply: (msg: string) => Promise<unknown>): Promise<CommandContext | null> {
+  const chatId = ctx.chat.id;
+  const userId = ctx.from?.id;
+
+  if (!userId) {
+    await reply("Sorry, I couldn't identify the user.");
+    return null;
+  }
+
+  if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
+    return null;
+  }
+
+  const resolved = await resolveTargetChatId(chatId);
+  if (!resolved) {
+    await reply("Commands are managed from the admin group for this chat.");
+    return null;
+  }
+
+  const isAdmin = await isGroupAdmin(chatId, userId);
+  if (!isAdmin) {
+    await reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
+    return null;
+  }
+
+  const targetChatId = resolved.targetChatId;
+
+  let existingConfig = await db.query.groupConfigs.findFirst({
+    where: eq(groupConfigs.chatId, targetChatId),
+  });
+
+  if (!existingConfig) {
+    const [created] = await db.insert(groupConfigs).values({
+      chatId: targetChatId,
+      summaryInterval: 21600,
+      minMessagesForSummary: 10,
+      isActive: true,
+    }).returning();
+    existingConfig = created;
+  }
+
+  // Auto-detect language only if not already configured
+  if (!existingConfig.language) {
+    const detectedLanguage = await detectGroupLanguage(targetChatId);
+    if (detectedLanguage) {
+      const groupConfigsRepo = new GroupConfigsRepository();
+      await groupConfigsRepo.upsert({ chatId: targetChatId, language: detectedLanguage });
+      existingConfig = { ...existingConfig, language: detectedLanguage };
+    }
+  }
+
+  return { targetChatId, config: existingConfig };
+}
+
 async function isGroupAdmin(chatId: number, userId: number): Promise<boolean> {
   try {
     const member = await bot.api.getChatMember(chatId, userId);
@@ -102,76 +161,35 @@ export async function initializeBot() {
     // Add summary command
     bot.command("summary", async (ctx) => {
       try {
-        const chatId = ctx.chat.id;
-        const userId = ctx.from?.id;
+        const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
+        if (!resolved) return;
 
-        if (!userId) {
-          await ctx.reply("Sorry, I couldn't identify the user.");
-          return;
+        const { targetChatId } = resolved;
+
+        await ctx.reply("Generating summary... Please wait.");
+        const summary = await triggerManualSummary(targetChatId);
+
+        // Check token usage for target
+        const groupConfigsRepo = new GroupConfigsRepository();
+        const usage = await groupConfigsRepo.checkTokenUsage(targetChatId);
+        if (usage?.shouldAlert) {
+          const alertMsg = [
+            `⚠️ *Token Usage Alert*`,
+            `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
+            `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
+            '',
+            `To prevent service interruption:`,
+            `• Increase your daily token limit, or`,
+            `• Reduce summary frequency`
+          ].join('\n');
+
+          await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
         }
 
-        // Resolve target chat (admin group → controlled group, or self)
-        if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
-          const resolved = await resolveTargetChatId(chatId);
-          if (!resolved) {
-            await ctx.reply("Commands are managed from the admin group for this chat.");
-            return;
-          }
-
-          const isAdmin = await isGroupAdmin(chatId, userId);
-          if (!isAdmin) {
-            await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
-            return;
-          }
-
-          const targetChatId = resolved.targetChatId;
-
-          // Ensure group config exists for target
-          let existingConfig = await db.query.groupConfigs.findFirst({
-            where: eq(groupConfigs.chatId, targetChatId),
-          });
-
-          if (!existingConfig) {
-            await db.insert(groupConfigs).values({
-              chatId: targetChatId,
-              summaryInterval: 21600,
-              minMessagesForSummary: 10,
-              isActive: true,
-            });
-          }
-
-          // Auto-detect and update group language for target
-          const detectedLanguage = await detectGroupLanguage(targetChatId);
-          if (detectedLanguage) {
-            const groupConfigsRepo = new GroupConfigsRepository();
-            await groupConfigsRepo.upsert({ chatId: targetChatId, language: detectedLanguage });
-          }
-
-          await ctx.reply("Generating summary... Please wait.");
-          const summary = await triggerManualSummary(targetChatId);
-
-          // Check token usage for target
-          const groupConfigsRepo = new GroupConfigsRepository();
-          const usage = await groupConfigsRepo.checkTokenUsage(targetChatId);
-          if (usage?.shouldAlert) {
-            const alertMsg = [
-              `⚠️ *Token Usage Alert*`,
-              `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
-              `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
-              '',
-              `To prevent service interruption:`,
-              `• Increase your daily token limit, or`,
-              `• Reduce summary frequency`
-            ].join('\n');
-
-            await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
-          }
-
-          if (summary) {
-            await ctx.reply(summary, { parse_mode: 'Markdown' });
-          } else {
-            await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
-          }
+        if (summary) {
+          await ctx.reply(summary, { parse_mode: 'Markdown' });
+        } else {
+          await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
         }
       } catch (error) {
         console.error("Error generating summary:", error);
@@ -182,69 +200,28 @@ export async function initializeBot() {
     // Add topics command
     bot.command("topics", async (ctx) => {
       try {
-        const chatId = ctx.chat.id;
-        const userId = ctx.from?.id;
+        const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
+        if (!resolved) return;
 
-        if (!userId) {
-          await ctx.reply("Sorry, I couldn't identify the user.");
-          return;
+        const { targetChatId } = resolved;
+
+        // Parse optional days argument
+        const args = ctx.match?.toString().trim();
+        let days = 14;
+        if (args) {
+          const parsed = parseInt(args, 10);
+          if (!isNaN(parsed) && parsed > 0 && parsed <= 365) {
+            days = parsed;
+          }
         }
 
-        // Resolve target chat (admin group → controlled group, or self)
-        if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
-          const resolved = await resolveTargetChatId(chatId);
-          if (!resolved) {
-            await ctx.reply("Commands are managed from the admin group for this chat.");
-            return;
-          }
+        await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);
+        const result = await triggerManualTopics(targetChatId, days);
 
-          const isAdmin = await isGroupAdmin(chatId, userId);
-          if (!isAdmin) {
-            await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
-            return;
-          }
-
-          const targetChatId = resolved.targetChatId;
-
-          // Parse optional days argument
-          const args = ctx.match?.toString().trim();
-          let days = 14;
-          if (args) {
-            const parsed = parseInt(args, 10);
-            if (!isNaN(parsed) && parsed > 0 && parsed <= 365) {
-              days = parsed;
-            }
-          }
-
-          // Ensure group config exists for target
-          let existingConfig = await db.query.groupConfigs.findFirst({
-            where: eq(groupConfigs.chatId, targetChatId),
-          });
-
-          if (!existingConfig) {
-            await db.insert(groupConfigs).values({
-              chatId: targetChatId,
-              summaryInterval: 21600,
-              minMessagesForSummary: 10,
-              isActive: true,
-            });
-          }
-
-          // Auto-detect and update group language for target
-          const detectedLanguage = await detectGroupLanguage(targetChatId);
-          if (detectedLanguage) {
-            const groupConfigsRepo = new GroupConfigsRepository();
-            await groupConfigsRepo.upsert({ chatId: targetChatId, language: detectedLanguage });
-          }
-
-          await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);
-          const result = await triggerManualTopics(targetChatId, days);
-
-          if (result) {
-            await ctx.reply(result, { parse_mode: 'Markdown' });
-          } else {
-            await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
-          }
+        if (result) {
+          await ctx.reply(result, { parse_mode: 'Markdown' });
+        } else {
+          await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
         }
       } catch (error) {
         console.error("Error extracting topics:", error);
