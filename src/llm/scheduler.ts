@@ -82,8 +82,13 @@ export function formatTopics(result: TopicsWithMeta): string {
     lines.push(`_${topic.participantCount} participants, ~${topic.messageCount} messages_\n`);
   });
 
-  const hours = Math.max(1, Math.round(((_meta.endTime.getTime() - _meta.startTime.getTime()) / (1000 * 60 * 60))));
-  lines.push(`_Based on ${_meta.messageCount} messages from ${_meta.participantCount} participants over ${hours} hour(s)_`);
+  const totalHours = Math.max(1, Math.round((_meta.endTime.getTime() - _meta.startTime.getTime()) / (1000 * 60 * 60)));
+  const days = Math.floor(totalHours / 24);
+  const remainingHours = totalHours % 24;
+  const period = days > 0
+    ? remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`
+    : `${remainingHours}h`;
+  lines.push(`_Based on ${_meta.messageCount} messages from ${_meta.participantCount} participants over ${period}_`);
 
   return lines.join('\n');
 }

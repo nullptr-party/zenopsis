@@ -201,16 +201,32 @@ describe("formatTopics", () => {
     expect(output).toContain("_3 participants, ~8 messages_");
   });
 
-  test("includes footer with metadata", () => {
+  test("includes footer with metadata (exactly 1 day)", () => {
     const output = formatTopics(makeResult());
-    expect(output).toContain("_Based on 150 messages from 8 participants over 24 hour(s)_");
+    expect(output).toContain("_Based on 150 messages from 8 participants over 1d_");
   });
 
-  test("shows minimum 1 hour even for short time spans", () => {
+  test("shows days and hours for multi-day spans", () => {
+    const output = formatTopics(makeResult({
+      startTime: new Date("2025-01-01T00:00:00Z"),
+      endTime: new Date("2025-01-03T05:00:00Z"),
+    }));
+    expect(output).toContain("over 2d 5h");
+  });
+
+  test("shows only hours for sub-day spans", () => {
+    const output = formatTopics(makeResult({
+      startTime: new Date("2025-01-01T00:00:00Z"),
+      endTime: new Date("2025-01-01T06:00:00Z"),
+    }));
+    expect(output).toContain("over 6h");
+  });
+
+  test("shows minimum 1h even for short time spans", () => {
     const output = formatTopics(makeResult({
       startTime: new Date("2025-01-01T00:00:00Z"),
       endTime: new Date("2025-01-01T00:10:00Z"),
     }));
-    expect(output).toContain("over 1 hour(s)");
+    expect(output).toContain("over 1h");
   });
 });
