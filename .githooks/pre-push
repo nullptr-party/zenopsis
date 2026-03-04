@@ -1,0 +1,8 @@
+#!/bin/sh
+echo "Running type-check..."
+bun run type-check || exit 1
+
+echo "Running tests..."
+bun test || exit 1
+
+echo "All checks passed."

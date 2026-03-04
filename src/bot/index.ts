@@ -29,6 +29,18 @@ export const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 // Debug mode detection
 const isDebugMode = process.env.NODE_ENV === 'development' || process.argv.includes('--debug');
 
+// Single source of truth for bot commands
+const BOT_COMMANDS = [
+  { command: "summary", description: "Generate a summary of recent messages", adminOnly: true },
+  { command: "topics", description: "Extract discussion topics for meeting prep", adminOnly: true },
+  { command: "link", description: "Link this group as admin group for another", adminOnly: true },
+  { command: "unlink", description: "Remove admin group link", adminOnly: true },
+  { command: "help", description: "Show available commands", adminOnly: false },
+] as const;
+
+type CommandName = (typeof BOT_COMMANDS)[number]["command"];
+type CommandHandler = Parameters<typeof bot.command>[1];
+
 interface CommandContext {
   targetChatId: number;
   config: typeof groupConfigs.$inferSelect;
@@ -146,197 +158,205 @@ export async function initializeBot() {
       }
     });
 
-    // Add command handlers
-    bot.command("start", (ctx) => ctx.reply("Welcome to Zenopsis! I will help you track and summarize group chat conversations."));
-    bot.command("help", (ctx) => ctx.reply(
-      "Available commands:\n" +
-      "/start - Start the bot\n" +
-      "/help - Show this help message\n" +
-      `/summary - Generate a summary of recent messages (${isDebugMode ? 'owner' : 'admin'} only)\n` +
-      `/topics [days] - Extract discussion topics for meeting prep (${isDebugMode ? 'owner' : 'admin'} only, default: 14 days)\n` +
-      `/link - Link this group as an admin group to control another group (${isDebugMode ? 'owner' : 'admin'} only)\n` +
-      `/unlink - Remove the link between this admin group and its controlled group (${isDebugMode ? 'owner' : 'admin'} only)`
-    ));
-
-    // Add summary command
-    bot.command("summary", async (ctx) => {
-      try {
-        const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
-        if (!resolved) return;
-
-        const { targetChatId } = resolved;
-
-        await ctx.reply("Generating summary... Please wait.");
-        const summary = await triggerManualSummary(targetChatId);
-
-        // Check token usage for target
-        const groupConfigsRepo = new GroupConfigsRepository();
-        const usage = await groupConfigsRepo.checkTokenUsage(targetChatId);
-        if (usage?.shouldAlert) {
-          const alertMsg = [
-            `⚠️ *Token Usage Alert*`,
-            `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
-            `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
-            '',
-            `To prevent service interruption:`,
-            `• Increase your daily token limit, or`,
-            `• Reduce summary frequency`
-          ].join('\n');
-
-          await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
-        }
-
-        if (summary) {
-          await ctx.reply(summary, { parse_mode: 'Markdown' });
-        } else {
-          await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
-        }
-      } catch (error) {
-        console.error("Error generating summary:", error);
-        await ctx.reply("Sorry, I couldn't generate a summary at this time. Please try again later.");
-      }
-    });
-
-    // Add topics command
-    bot.command("topics", async (ctx) => {
-      try {
-        const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
-        if (!resolved) return;
-
-        const { targetChatId } = resolved;
-
-        // Parse optional days argument
-        const args = ctx.match?.toString().trim();
-        let days = 14;
-        if (args) {
-          const parsed = parseInt(args, 10);
-          if (!isNaN(parsed) && parsed > 0 && parsed <= 365) {
-            days = parsed;
-          }
-        }
-
-        await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);
-        const result = await triggerManualTopics(targetChatId, days);
-
-        if (result) {
-          await ctx.reply(result, { parse_mode: 'Markdown' });
-        } else {
-          await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
-        }
-      } catch (error) {
-        console.error("Error extracting topics:", error);
-        await ctx.reply("Sorry, I couldn't extract topics at this time. Please try again later.");
-      }
-    });
-
-    // Add link command (for admin groups)
-    bot.command("link", async (ctx) => {
-      try {
-        const chatId = ctx.chat.id;
-        const userId = ctx.from?.id;
-
-        if (!userId) {
-          await ctx.reply("Sorry, I couldn't identify the user.");
-          return;
-        }
-
-        if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
-          await ctx.reply("This command can only be used in a group.");
-          return;
-        }
-
-        const isAdmin = await isGroupAdmin(chatId, userId);
-        if (!isAdmin) {
-          await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
-          return;
-        }
-
-        // Check if already linked as an admin group
-        const existingLink = await adminGroupLinksRepo.getByAdminChatId(chatId);
-        if (existingLink) {
-          await ctx.reply(
-            `This group is already linked as an admin group for "${existingLink.controlledChatTitle || 'Unknown Group'}". Use /unlink first to remove the existing link.`
-          );
-          return;
-        }
-
-        // Check if this group is being controlled by another admin group
-        const controlledLink = await adminGroupLinksRepo.getByControlledChatId(chatId);
-        if (controlledLink) {
-          await ctx.reply("This group is controlled by another admin group. It cannot also be an admin group.");
-          return;
-        }
-
-        const token = await adminGroupLinksRepo.createLinkingToken(chatId, userId);
-
-        const tokenMsg = await ctx.reply(
-          "Forward this message to the group you want to control from here.\n\n" +
-          `🔗 zenopsis-link:${token}\n\n` +
-          "This token expires in 15 minutes.\n\n" +
-          "⚠️ Note: Once linked, messages in this group will not be logged — it becomes a control-only group."
-        );
-
-        // Auto-delete the token message after expiry (15 minutes)
-        await scheduleTask({
-          type: 'delete_message',
-          payload: { chatId, messageId: tokenMsg.message_id },
-          runAt: Date.now() + 15 * 60 * 1000,
+    // Command handlers — Record<CommandName, handler> ensures every command has a handler.
+    // TypeScript will error if you add a command to BOT_COMMANDS but forget a handler here.
+    const commandHandlers: Record<CommandName, CommandHandler> = {
+      help: (ctx) => {
+        const adminLabel = isDebugMode ? 'owner' : 'admin';
+        const lines = BOT_COMMANDS.map(cmd => {
+          const suffix = cmd.adminOnly ? ` (${adminLabel} only)` : '';
+          return `/${cmd.command} - ${cmd.description}${suffix}`;
         });
-      } catch (error) {
-        console.error("Error generating link token:", error);
-        await ctx.reply("Sorry, an error occurred. Please try again.");
-      }
-    });
+        ctx.reply("Available commands:\n" + lines.join("\n"));
+      },
 
-    // Add unlink command (for admin groups)
-    bot.command("unlink", async (ctx) => {
-      try {
-        const chatId = ctx.chat.id;
-        const userId = ctx.from?.id;
-
-        if (!userId) {
-          await ctx.reply("Sorry, I couldn't identify the user.");
-          return;
-        }
-
-        if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
-          await ctx.reply("This command can only be used in a group.");
-          return;
-        }
-
-        const isAdmin = await isGroupAdmin(chatId, userId);
-        if (!isAdmin) {
-          await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
-          return;
-        }
-
-        const existingLink = await adminGroupLinksRepo.getByAdminChatId(chatId);
-        if (!existingLink) {
-          await ctx.reply("This group is not linked to any group.");
-          return;
-        }
-
-        await adminGroupLinksRepo.removeLink(chatId);
-        invalidateAdminGroupCache();
-
-        await ctx.reply(
-          `Unlinked from "${existingLink.controlledChatTitle || 'Unknown Group'}". Commands in that group will work normally again.`
-        );
-
-        // Try to notify the previously controlled group
+      summary: async (ctx) => {
         try {
-          await ctx.api.sendMessage(
-            existingLink.controlledChatId,
-            "This group has been unlinked from its admin group. Commands like /summary now work directly in this group again."
-          );
-        } catch (err) {
-          // Controlled group might not be reachable
+          const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
+          if (!resolved) return;
+
+          const { targetChatId } = resolved;
+
+          await ctx.reply("Generating summary... Please wait.");
+          const summary = await triggerManualSummary(targetChatId);
+
+          // Check token usage for target
+          const groupConfigsRepo = new GroupConfigsRepository();
+          const usage = await groupConfigsRepo.checkTokenUsage(targetChatId);
+          if (usage?.shouldAlert) {
+            const alertMsg = [
+              `⚠️ *Token Usage Alert*`,
+              `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
+              `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
+              '',
+              `To prevent service interruption:`,
+              `• Increase your daily token limit, or`,
+              `• Reduce summary frequency`
+            ].join('\n');
+
+            await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
+          }
+
+          if (summary) {
+            await ctx.reply(summary, { parse_mode: 'Markdown' });
+          } else {
+            await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
+          }
+        } catch (error) {
+          console.error("Error generating summary:", error);
+          await ctx.reply("Sorry, I couldn't generate a summary at this time. Please try again later.");
         }
-      } catch (error) {
-        console.error("Error unlinking:", error);
-        await ctx.reply("Sorry, an error occurred. Please try again.");
-      }
-    });
+      },
+
+      topics: async (ctx) => {
+        try {
+          const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
+          if (!resolved) return;
+
+          const { targetChatId } = resolved;
+
+          // Parse optional days argument
+          const args = ctx.match?.toString().trim();
+          let days = 14;
+          if (args) {
+            const parsed = parseInt(args, 10);
+            if (!isNaN(parsed) && parsed > 0 && parsed <= 365) {
+              days = parsed;
+            }
+          }
+
+          await ctx.reply(`Extracting discussion topics for the last ${days} day(s)... Please wait.`);
+          const result = await triggerManualTopics(targetChatId, days);
+
+          if (result) {
+            await ctx.reply(result, { parse_mode: 'Markdown' });
+          } else {
+            await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
+          }
+        } catch (error) {
+          console.error("Error extracting topics:", error);
+          await ctx.reply("Sorry, I couldn't extract topics at this time. Please try again later.");
+        }
+      },
+
+      link: async (ctx) => {
+        try {
+          const chatId = ctx.chat.id;
+          const userId = ctx.from?.id;
+
+          if (!userId) {
+            await ctx.reply("Sorry, I couldn't identify the user.");
+            return;
+          }
+
+          if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
+            await ctx.reply("This command can only be used in a group.");
+            return;
+          }
+
+          const isAdmin = await isGroupAdmin(chatId, userId);
+          if (!isAdmin) {
+            await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
+            return;
+          }
+
+          // Check if already linked as an admin group
+          const existingLink = await adminGroupLinksRepo.getByAdminChatId(chatId);
+          if (existingLink) {
+            await ctx.reply(
+              `This group is already linked as an admin group for "${existingLink.controlledChatTitle || 'Unknown Group'}". Use /unlink first to remove the existing link.`
+            );
+            return;
+          }
+
+          // Check if this group is being controlled by another admin group
+          const controlledLink = await adminGroupLinksRepo.getByControlledChatId(chatId);
+          if (controlledLink) {
+            await ctx.reply("This group is controlled by another admin group. It cannot also be an admin group.");
+            return;
+          }
+
+          const token = await adminGroupLinksRepo.createLinkingToken(chatId, userId);
+
+          const tokenMsg = await ctx.reply(
+            "Forward this message to the group you want to control from here.\n\n" +
+            `🔗 zenopsis-link:${token}\n\n` +
+            "This token expires in 15 minutes.\n\n" +
+            "⚠️ Note: Once linked, messages in this group will not be logged — it becomes a control-only group."
+          );
+
+          // Auto-delete the token message after expiry (15 minutes)
+          await scheduleTask({
+            type: 'delete_message',
+            payload: { chatId, messageId: tokenMsg.message_id },
+            runAt: Date.now() + 15 * 60 * 1000,
+          });
+        } catch (error) {
+          console.error("Error generating link token:", error);
+          await ctx.reply("Sorry, an error occurred. Please try again.");
+        }
+      },
+
+      unlink: async (ctx) => {
+        try {
+          const chatId = ctx.chat.id;
+          const userId = ctx.from?.id;
+
+          if (!userId) {
+            await ctx.reply("Sorry, I couldn't identify the user.");
+            return;
+          }
+
+          if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") {
+            await ctx.reply("This command can only be used in a group.");
+            return;
+          }
+
+          const isAdmin = await isGroupAdmin(chatId, userId);
+          if (!isAdmin) {
+            await ctx.reply(`Sorry, only group ${isDebugMode ? 'owner' : 'administrators'} can use this command.`);
+            return;
+          }
+
+          const existingLink = await adminGroupLinksRepo.getByAdminChatId(chatId);
+          if (!existingLink) {
+            await ctx.reply("This group is not linked to any group.");
+            return;
+          }
+
+          await adminGroupLinksRepo.removeLink(chatId);
+          invalidateAdminGroupCache();
+
+          await ctx.reply(
+            `Unlinked from "${existingLink.controlledChatTitle || 'Unknown Group'}". Commands in that group will work normally again.`
+          );
+
+          // Try to notify the previously controlled group
+          try {
+            await ctx.api.sendMessage(
+              existingLink.controlledChatId,
+              "This group has been unlinked from its admin group. Commands like /summary now work directly in this group again."
+            );
+          } catch (err) {
+            // Controlled group might not be reachable
+          }
+        } catch (error) {
+          console.error("Error unlinking:", error);
+          await ctx.reply("Sorry, an error occurred. Please try again.");
+        }
+      },
+    };
+
+    // Register all commands from the typed record
+    bot.command("start", (ctx) => ctx.reply("Welcome to Zenopsis! I will help you track and summarize group chat conversations."));
+    for (const { command } of BOT_COMMANDS) {
+      bot.command(command, commandHandlers[command]);
+    }
+
+    // Register bot commands with Telegram
+    await bot.api.setMyCommands(
+      BOT_COMMANDS.map(({ command, description }) => ({ command, description }))
+    );
 
     // Log startup mode
     console.log(`Bot started successfully in ${isDebugMode ? 'debug' : 'production'} mode`);
