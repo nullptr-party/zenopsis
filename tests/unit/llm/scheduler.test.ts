@@ -35,23 +35,23 @@ describe("formatSummary", () => {
     const result = formatSummary(
       createSummary({ actionItems: ["Deploy by Friday", "Write tests"] }),
     );
-    expect(result).toContain("*Action Items:*");
+    expect(result).toContain("<b>Action Items:</b>");
     expect(result).toContain("Deploy by Friday");
     expect(result).toContain("Write tests");
   });
 
   test("omits action items section when empty", () => {
     const result = formatSummary(createSummary({ actionItems: [] }));
-    expect(result).not.toContain("*Action Items:*");
+    expect(result).not.toContain("<b>Action Items:</b>");
   });
 
-  test("includes markdown formatting", () => {
+  test("includes html formatting", () => {
     const result = formatSummary(createSummary());
-    expect(result).toContain("📋 *Conversation Summary*");
-    expect(result).toContain("*Main Topics:*");
-    expect(result).toContain("*Summary:*");
-    expect(result).toContain("*Key Participants:*");
-    expect(result).toContain("*Overall Sentiment:*");
+    expect(result).toContain("📋 <b>Conversation Summary</b>");
+    expect(result).toContain("<b>Main Topics:</b>");
+    expect(result).toContain("<b>Summary:</b>");
+    expect(result).toContain("<b>Key Participants:</b>");
+    expect(result).toContain("<b>Overall Sentiment:</b>");
   });
 
   test("lists all main topics as bullet points", () => {
@@ -74,5 +74,22 @@ describe("formatSummary", () => {
     expect(result).toContain("• Alice");
     expect(result).toContain("• Bob");
     expect(result).toContain("• Charlie");
+  });
+
+  test("escapes html-sensitive characters in dynamic content", () => {
+    const result = formatSummary(
+      createSummary({
+        mainTopics: [{ name: "A&B <test>", relevance: 0.9 }],
+        summary: "Use <b>tag</b> & keep it literal.",
+        keyParticipants: ["staring_misaka", "alice<dev>"],
+        actionItems: ["Ship <today> & verify"],
+      }),
+    );
+
+    expect(result).toContain("A&amp;B &lt;test&gt;");
+    expect(result).toContain("Use &lt;b&gt;tag&lt;/b&gt; &amp; keep it literal.");
+    expect(result).toContain("staring_misaka");
+    expect(result).toContain("alice&lt;dev&gt;");
+    expect(result).toContain("Ship &lt;today&gt; &amp; verify");
   });
 });

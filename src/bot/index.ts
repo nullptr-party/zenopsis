@@ -198,7 +198,7 @@ export async function initializeBot() {
           }
 
           if (summary) {
-            await ctx.reply(summary, { parse_mode: 'Markdown' });
+            await ctx.reply(summary, { parse_mode: 'HTML' });
           } else {
             await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
           }
@@ -229,7 +229,7 @@ export async function initializeBot() {
           const result = await triggerManualTopics(targetChatId, days);
 
           if (result) {
-            await ctx.reply(result, { parse_mode: 'Markdown' });
+            await ctx.reply(result, { parse_mode: 'HTML' });
           } else {
             await ctx.reply("Not enough messages to extract topics. Please try again later when there are more messages.");
           }

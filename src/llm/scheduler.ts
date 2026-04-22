@@ -5,6 +5,13 @@ import { batchMessages, generateSummary, storeSummary, batchMessagesForTopics, g
 import { bot } from '../bot';
 import { Summary, Topics } from './client';
 
+function escapeTelegramHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
 export function formatSummary(summary: Summary): string {
   const sentiment = {
     positive: '😊',
@@ -12,14 +19,14 @@ export function formatSummary(summary: Summary): string {
     negative: '😕',
   };
 
-  return `📋 *Conversation Summary*\n\n` +
-    `*Main Topics:*\n${summary.mainTopics.map(topic => `• ${topic.name}`).join('\n')}\n\n` +
-    `*Summary:*\n${summary.summary}\n\n` +
-    `*Key Participants:*\n${summary.keyParticipants.map(participant => `• ${participant}`).join('\n')}\n\n` +
+  return `📋 <b>Conversation Summary</b>\n\n` +
+    `<b>Main Topics:</b>\n${summary.mainTopics.map(topic => `• ${escapeTelegramHtml(topic.name)}`).join('\n')}\n\n` +
+    `<b>Summary:</b>\n${escapeTelegramHtml(summary.summary)}\n\n` +
+    `<b>Key Participants:</b>\n${summary.keyParticipants.map(participant => `• ${escapeTelegramHtml(participant)}`).join('\n')}\n\n` +
     (summary.actionItems && summary.actionItems.length > 0
-      ? `*Action Items:*\n${summary.actionItems.map(item => `• ${item}`).join('\n')}\n\n`
+      ? `<b>Action Items:</b>\n${summary.actionItems.map(item => `• ${escapeTelegramHtml(item)}`).join('\n')}\n\n`
       : '') +
-    `*Overall Sentiment:* ${sentiment[summary.sentiment]}`;
+    `<b>Overall Sentiment:</b> ${sentiment[summary.sentiment]}`;
 }
 
 async function processGroupSummary(config: any, autoSend: boolean = false) {
@@ -40,7 +47,7 @@ async function processGroupSummary(config: any, autoSend: boolean = false) {
   // If autoSend is true (scheduler) or it's a manual trigger without a return handler
   if (autoSend) {
     await bot.api.sendMessage(config.chatId, formattedSummary, {
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
     });
   }
 
@@ -74,12 +81,12 @@ interface TopicsWithMeta extends Topics {
 export function formatTopics(result: TopicsWithMeta): string {
   const { topics, _meta } = result;
 
-  const lines: string[] = ['*Discussion Topics for Meeting Prep*\n'];
+  const lines: string[] = ['<b>Discussion Topics for Meeting Prep</b>\n'];
 
   topics.forEach((topic, i) => {
-    lines.push(`*${i + 1}. ${topic.title}*`);
-    lines.push(topic.summary);
-    lines.push(`_${topic.participantCount} participants, ~${topic.messageCount} messages_\n`);
+    lines.push(`<b>${i + 1}. ${escapeTelegramHtml(topic.title)}</b>`);
+    lines.push(escapeTelegramHtml(topic.summary));
+    lines.push(`<i>${topic.participantCount} participants, ~${topic.messageCount} messages</i>\n`);
   });
 
   const totalHours = Math.max(1, Math.round((_meta.endTime.getTime() - _meta.startTime.getTime()) / (1000 * 60 * 60)));
@@ -88,7 +95,7 @@ export function formatTopics(result: TopicsWithMeta): string {
   const period = days > 0
     ? remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`
     : `${remainingHours}h`;
-  lines.push(`_Based on ${_meta.messageCount} messages from ${_meta.participantCount} participants over ${period}_`);
+  lines.push(`<i>Based on ${_meta.messageCount} messages from ${_meta.participantCount} participants over ${period}</i>`);
 
   return lines.join('\n');
 }

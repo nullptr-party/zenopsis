@@ -180,13 +180,13 @@ describe("formatTopics", () => {
 
   test("includes header", () => {
     const output = formatTopics(makeResult());
-    expect(output).toContain("*Discussion Topics for Meeting Prep*");
+    expect(output).toContain("<b>Discussion Topics for Meeting Prep</b>");
   });
 
   test("includes numbered topics", () => {
     const output = formatTopics(makeResult());
-    expect(output).toContain("*1. API Redesign*");
-    expect(output).toContain("*2. Bug in Login*");
+    expect(output).toContain("<b>1. API Redesign</b>");
+    expect(output).toContain("<b>2. Bug in Login</b>");
   });
 
   test("includes topic summaries", () => {
@@ -197,13 +197,13 @@ describe("formatTopics", () => {
 
   test("includes participant and message counts per topic", () => {
     const output = formatTopics(makeResult());
-    expect(output).toContain("_4 participants, ~15 messages_");
-    expect(output).toContain("_3 participants, ~8 messages_");
+    expect(output).toContain("<i>4 participants, ~15 messages</i>");
+    expect(output).toContain("<i>3 participants, ~8 messages</i>");
   });
 
   test("includes footer with metadata (exactly 1 day)", () => {
     const output = formatTopics(makeResult());
-    expect(output).toContain("_Based on 150 messages from 8 participants over 1d_");
+    expect(output).toContain("<i>Based on 150 messages from 8 participants over 1d</i>");
   });
 
   test("shows days and hours for multi-day spans", () => {
@@ -228,5 +228,22 @@ describe("formatTopics", () => {
       endTime: new Date("2025-01-01T00:10:00Z"),
     }));
     expect(output).toContain("over 1h");
+  });
+
+  test("escapes html-sensitive topic content", () => {
+    const output = formatTopics({
+      ...makeResult(),
+      topics: [
+        {
+          title: "A&B <Topic>",
+          summary: "Check <b>markup</b> & keep it literal.",
+          participantCount: 2,
+          messageCount: 5,
+        },
+      ],
+    });
+
+    expect(output).toContain("<b>1. A&amp;B &lt;Topic&gt;</b>");
+    expect(output).toContain("Check &lt;b&gt;markup&lt;/b&gt; &amp; keep it literal.");
   });
 });
