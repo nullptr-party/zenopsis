@@ -60,7 +60,7 @@ export function createLinkDetector(): Middleware<Context> {
       );
 
       const confirmMsg = await ctx.reply(
-        'This group is now controlled from an admin group. Commands like /summary will only work from the admin group.'
+        'This group is now controlled from an admin group. Commands like /topics will only work from the admin group.'
       );
 
       // Auto-delete the forwarded token message and confirmation

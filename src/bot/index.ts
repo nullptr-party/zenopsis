@@ -4,7 +4,7 @@ import { initializeDatabase } from "../db/init";
 import { createMessageLogger, invalidateAdminGroupCache } from "./middleware/message-logger";
 import { createLinkDetector } from "./middleware/link-detector";
 import { rateLimiter } from "./middleware/rate-limiter";
-import { triggerManualSummary, triggerManualTopics } from "../llm/scheduler";
+import { triggerManualTopics } from "../llm/scheduler";
 import { db } from "../db";
 import { groupConfigs } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -31,7 +31,6 @@ const isDebugMode = process.env.NODE_ENV === 'development' || process.argv.inclu
 
 // Single source of truth for bot commands
 const BOT_COMMANDS = [
-  { command: "summary", description: "Generate a summary of recent messages", adminOnly: true },
   { command: "topics", description: "Extract discussion topics for meeting prep", adminOnly: true },
   { command: "link", description: "Link this group as admin group for another", adminOnly: true },
   { command: "unlink", description: "Remove admin group link", adminOnly: true },
@@ -153,7 +152,7 @@ export async function initializeBot() {
             isActive: true,
           });
 
-          await ctx.reply("Thanks for adding me! I'll help you track and summarize conversations in this group.");
+          await ctx.reply("Thanks for adding me! I'll help you track conversations and extract discussion topics for this group.");
         }
       }
     });
@@ -168,44 +167,6 @@ export async function initializeBot() {
           return `/${cmd.command} - ${cmd.description}${suffix}`;
         });
         ctx.reply("Available commands:\n" + lines.join("\n"));
-      },
-
-      summary: async (ctx) => {
-        try {
-          const resolved = await resolveCommandContext(ctx, (msg) => ctx.reply(msg));
-          if (!resolved) return;
-
-          const { targetChatId } = resolved;
-
-          await ctx.reply("Generating summary... Please wait.");
-          const summary = await triggerManualSummary(targetChatId);
-
-          // Check token usage for target
-          const groupConfigsRepo = new GroupConfigsRepository();
-          const usage = await groupConfigsRepo.checkTokenUsage(targetChatId);
-          if (usage?.shouldAlert) {
-            const alertMsg = [
-              `⚠️ *Token Usage Alert*`,
-              `Current usage: ${usage.percentage.toFixed(1)}% of daily limit`,
-              `${usage.currentUsage.toLocaleString()} / ${usage.limit.toLocaleString()} tokens used`,
-              '',
-              `To prevent service interruption:`,
-              `• Increase your daily token limit, or`,
-              `• Reduce summary frequency`
-            ].join('\n');
-
-            await ctx.reply(alertMsg, { parse_mode: 'Markdown' });
-          }
-
-          if (summary) {
-            await ctx.reply(summary, { parse_mode: 'HTML' });
-          } else {
-            await ctx.reply("Not enough messages to generate a summary. Please try again later when there are more messages.");
-          }
-        } catch (error) {
-          console.error("Error generating summary:", error);
-          await ctx.reply("Sorry, I couldn't generate a summary at this time. Please try again later.");
-        }
       },
 
       topics: async (ctx) => {
@@ -335,7 +296,7 @@ export async function initializeBot() {
           try {
             await ctx.api.sendMessage(
               existingLink.controlledChatId,
-              "This group has been unlinked from its admin group. Commands like /summary now work directly in this group again."
+              "This group has been unlinked from its admin group. Commands like /topics now work directly in this group again."
             );
           } catch (err) {
             // Controlled group might not be reachable
@@ -348,7 +309,7 @@ export async function initializeBot() {
     };
 
     // Register all commands from the typed record
-    bot.command("start", (ctx) => ctx.reply("Welcome to Zenopsis! I will help you track and summarize group chat conversations."));
+    bot.command("start", (ctx) => ctx.reply("Welcome to Zenopsis! I will help you track group conversations and prepare discussion topics."));
     for (const { command } of BOT_COMMANDS) {
       bot.command(command, commandHandlers[command]);
     }

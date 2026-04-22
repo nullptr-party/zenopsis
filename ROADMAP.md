@@ -148,6 +148,11 @@
 
 ## Final Phases
 
+## Current Product Notes
+
+- [x] `/topics` is the active meeting-prep workflow
+- [x] `/summary` is temporarily removed from the bot command surface until its behavior is redesigned around the product goal
+
 ### Phase 11: Testing and Documentation
 - [ ] **Testing**:
   - [x] Basic unit tests for repositories (messages, references, group configs)
