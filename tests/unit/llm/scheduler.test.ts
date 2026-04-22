@@ -45,11 +45,6 @@ describe("formatSummary", () => {
     expect(result).not.toContain("*Action Items:*");
   });
 
-  test("omits action items section when undefined", () => {
-    const result = formatSummary(createSummary({ actionItems: undefined }));
-    expect(result).not.toContain("*Action Items:*");
-  });
-
   test("includes markdown formatting", () => {
     const result = formatSummary(createSummary());
     expect(result).toContain("📋 *Conversation Summary*");

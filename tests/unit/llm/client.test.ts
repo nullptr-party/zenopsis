@@ -1,5 +1,46 @@
 import { describe, test, expect, mock } from "bun:test";
-import { withErrorHandling } from "@/llm/client";
+import { SummarySchema, withErrorHandling } from "@/llm/client";
+
+describe("SummarySchema", () => {
+  test("accepts null topicCluster and required actionItems array", () => {
+    const result = SummarySchema.safeParse({
+      title: "Test Summary",
+      sections: [
+        {
+          title: "Decisions",
+          content: "The team agreed to ship the fix.",
+          topicCluster: null,
+        },
+      ],
+      mainTopics: [{ name: "Deployment", relevance: 0.9 }],
+      summary: "A short summary.",
+      keyParticipants: ["Alice"],
+      actionItems: [],
+      sentiment: "neutral",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test("requires actionItems to be present", () => {
+    const result = SummarySchema.safeParse({
+      title: "Test Summary",
+      sections: [
+        {
+          title: "Decisions",
+          content: "The team agreed to ship the fix.",
+          topicCluster: null,
+        },
+      ],
+      mainTopics: [{ name: "Deployment", relevance: 0.9 }],
+      summary: "A short summary.",
+      keyParticipants: ["Alice"],
+      sentiment: "neutral",
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("withErrorHandling", () => {
   test("returns result on successful first attempt", async () => {

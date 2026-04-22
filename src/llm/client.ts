@@ -10,7 +10,7 @@ export const SummarySchema = z.object({
   sections: z.array(z.object({
     title: z.string().describe('Section title'),
     content: z.string().describe('Section content'),
-    topicCluster: z.string().optional().describe('Associated topic cluster')
+    topicCluster: z.string().nullable().describe('Associated topic cluster, or null when not applicable')
   })).describe('Organized sections of the summary'),
   mainTopics: z.array(z.object({
     name: z.string().describe('Topic name'),
@@ -18,7 +18,7 @@ export const SummarySchema = z.object({
   })).describe('Main topics discussed in the conversation'),
   summary: z.string().describe('A concise summary of the conversation'),
   keyParticipants: z.array(z.string()).describe('Key participants in the conversation'),
-  actionItems: z.array(z.string()).optional().describe('Any action items or decisions made'),
+  actionItems: z.array(z.string()).describe('Any action items or decisions made. Use an empty array when there are none'),
   sentiment: z.enum(['positive', 'neutral', 'negative']).describe('Overall sentiment of the conversation'),
 });
 

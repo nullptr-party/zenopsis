@@ -69,8 +69,8 @@ export async function generateSummary(batch: MessageBatch) {
     const { object: summary } = await generateObject({
       model,
       schema: SummarySchema,
-      system: 'You are a helpful assistant that summarizes group chat conversations. Focus on key points, decisions, and action items.',
-      prompt: `Please analyze and summarize the following conversation:\n\n${messageText}`,
+      system: 'You are a helpful assistant that summarizes group chat conversations. Focus on key points, decisions, and action items. Always return every schema field. Use [] for actionItems when there are none and null for section.topicCluster when not applicable.',
+      prompt: `Please analyze and summarize the following conversation. Ensure every section includes title, content, and topicCluster, and always include actionItems even if it is an empty array.\n\n${messageText}`,
       temperature: 0.7,
       maxTokens: MAX_TOKENS_PER_REQUEST,
     });
